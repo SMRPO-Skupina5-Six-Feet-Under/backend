@@ -1,0 +1,19 @@
+okolje: 
+predlagam da si nardite virtual okolje za python da se paketi ne bodo tepl med sabo ni nujno ampak če kej ne dela bo prov pršlo. 
+pol pa s pip namestiš kar je v requierments.txt 
+ukaz: pip install -r requiermets.txt
+
+zaženi app lokalno:
+
+najprej zaženi docker za bazo
+sudo docker run -d --name smrpodb -e POSTGRES_USER=dbuser -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smrpo-db -p 5432:5432 postgres:13
+
+potem zaženi app 
+ uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+
+ odpri browser na localhost:8003
+
+če vse dela prov bi mogu bit nek Hello World izpisan
+
+Avtomatsko generirana SWAGER dokumentacija je na:  
+localhost:8003/docs 
