@@ -25,6 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+#init baze
+models.Base.metadata.create_all(bind=engine)
+
+
+
+
 #------ CORE funkcionalnosti ------
 
 # Dependency
