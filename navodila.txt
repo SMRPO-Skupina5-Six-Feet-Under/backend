@@ -1,7 +1,7 @@
 okolje: 
 predlagam da si nardite virtual okolje za python da se paketi ne bodo tepl med sabo ni nujno ampak če kej ne dela bo prov pršlo. 
 pol pa s pip namestiš kar je v requierments.txt 
-ukaz: pip install -r requiermets.txt
+ukaz: pip install -r requierments.txt
 
 zaženi app lokalno:
 
