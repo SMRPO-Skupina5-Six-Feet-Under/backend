@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Path, Depends, FastAPI
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine
+from .database import SessionLocal, engine
 from typing import List
 
 #za middleware
 from fastapi.middleware.cors import CORSMiddleware
 
 #local import files
-import crud, models, schemas
+from app import crud, models, schemas
 
 app = FastAPI(
     title="SMRPOBackend",

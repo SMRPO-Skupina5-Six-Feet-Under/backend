@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Float, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
-from database import Base
+from .database import Base
 
 #TODO samo osnova, dodaj atribute in vse potrebno
 class Uporabnik(Base):

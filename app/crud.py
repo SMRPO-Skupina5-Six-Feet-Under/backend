@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-import models
-import schemas
+from app import models
+from app import schemas
 
 # get za projekt z imenom
 def get_projekt(db: Session, imeProjekta: str):
