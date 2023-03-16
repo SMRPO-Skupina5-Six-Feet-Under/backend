@@ -3,7 +3,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import psycopg2
+from dotenv import load_dotenv
 
+#nalozi okoljske spremenljivke iz .env datoteke
+load_dotenv()
 
 hostname = os.getenv("POSTGRES_HOST", "localhost")
 username = os.getenv("POSTGRES_USER", "dbuser")
