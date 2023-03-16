@@ -19,4 +19,20 @@ def create_projekt(db: Session, projekt: schemas.ProjektCreate):
     db.refresh(db_projekt)
     return db_projekt
 
-# TODO potrebne operacije za uporabnika in projkete
+#TODO potrebne operacije za prijavo
+#to dela anze
+
+#TODO potrebne operacije za zgodbe
+
+# TODO potrebne operacije za uporabnika in registracijo
+#to dela matic 
+
+# TODO potreben opreacije za projekt
+#to dela gasper 
+
+# TODO potrebne operacije za zgodbe
+#to se noben ni calimu
+
+# TODO potrebne operacije za naloge (task ali subtask)
+#to se noben ni calimu
+
