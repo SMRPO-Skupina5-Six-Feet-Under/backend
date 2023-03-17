@@ -37,3 +37,23 @@ class Projekt(ProjektBase):
 
     class Config:
         orm_mode = True
+
+#shema za zgodbo
+
+#base class
+class ZgodbaBase(BaseModel):
+    imeZgodbe: str
+    opisZgodbe: str
+    userGiven_id_zgodbe: int
+
+#Create class
+class ZgodbaCreate(ZgodbaBase):
+    pass
+
+#končni class
+class Zgodba(ZgodbaBase):
+    id: int
+    projekt_id: int
+
+    class Config:
+        orm_mode = True
