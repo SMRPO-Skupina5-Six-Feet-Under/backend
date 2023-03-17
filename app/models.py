@@ -1,28 +1,35 @@
-from sqlalchemy import Column, String, Float, Integer, ForeignKey
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-
 from .database import Base
 
-#TODO samo osnova, dodaj atribute in vse potrebno
-class Uporabnik(Base):
-    __tablename__ = "uporabnik"
 
-    #atributi
+class User(Base):
+    __tablename__ = "user"
+
+    # Attributes.
     id = Column(Integer, primary_key=True, index=True)
-    imeUporabnika = Column(String)
+    name = Column(String)
+    surname = Column(String)
+    username = Column(String)
+    email = Column(String)
+    permission = Column(String)
+    password = Column(String)
+    last_session = Column(DateTime)
 
-    #relacije/atributi drugje
-    projekt_id = Column(Integer, ForeignKey('projekt.id'))
-    projekt = relationship("Projekt", back_populates="uporabniki")
+    # Relations.
+    project_id = Column(Integer, ForeignKey('project.id'))
+    project = relationship("Project", back_populates="users")
 
 
+class Project(Base):
+    __tablename__ = "project"
 
-class Projekt(Base):
-    __tablename__ = "projekt"
-
-    #atributi
+    # Attributes.
     id = Column(Integer, primary_key=True, index=True)
-    imeProjekta = Column(String)
+    name = Column(String)
+    owner = Column(String)
+    scrum_master = Column(String)
+    participants = Column(String)
 
-    #relacije/atrbuti drugje 
-    uporabniki = relationship("Uporabnik", back_populates="projekt")
+    # Relations.
+    users = relationship("User", back_populates="project")

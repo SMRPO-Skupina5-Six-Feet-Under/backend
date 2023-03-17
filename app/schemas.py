@@ -5,17 +5,17 @@ from typing import List
 #Shema za uporabnika 
 
 #base class
-class UporabnikBase(BaseModel):  
+class UserBase(BaseModel):
     imeUporabnika: str
 
 #Create class
-class UporabnikCreate(UporabnikBase): 
+class UporabnikCreate(UserBase):
     pass
 
 #končni class
-class Uporabnik(UporabnikBase): 
+class User(UserBase):
     id: int
-    projekt_id: int 
+    project_id: int
 
     class Config:
         orm_mode = True
@@ -23,17 +23,17 @@ class Uporabnik(UporabnikBase):
 #shema za projekt
 
 #base class
-class ProjektBase(BaseModel):
-    imeProjekta: str
+class ProjectBase(BaseModel):
+    name: str
 
 #Create class
-class ProjektCreate(ProjektBase): 
+class ProjectCreate(ProjectBase):
     pass
 
 #končni class
-class Projekt(ProjektBase):
+class Project(ProjectBase):
     id: int
-    uporabniki: List[Uporabnik] = []
+    users: List[User] = []
 
     class Config:
         orm_mode = True
