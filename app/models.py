@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -6,30 +6,34 @@ from .database import Base
 class User(Base):
     __tablename__ = "user"
 
-    # Attributes.
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    surname = Column(String)
-    username = Column(String)
-    email = Column(String)
-    permission = Column(String)
-    password = Column(String)
-    last_session = Column(DateTime)
-
-    # Relations.
-    project_id = Column(Integer, ForeignKey('project.id'))
-    project = relationship("Project", back_populates="users")
+    userName = Column(String(256), unique=True)
+    firstName = Column(String(256))
+    lastName = Column(String(256))
+    email = Column(String(256), unique=True)
+    isAdmin = Column(Boolean, default=False)
+    password = Column(String(128))
+    permissions = Column(String, nullable=True)
+    lastLogin = Column(DateTime, nullable=True)
 
 
 class Project(Base):
     __tablename__ = "project"
 
-    # Attributes.
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    owner = Column(String)
-    scrum_master = Column(String)
-    participants = Column(String)
+    name = Column(String(256))
+    productOwner = Column(String(256))
+    scrumMaster = Column(String(256))
+    developers = Column(String(256))
 
-    # Relations.
-    users = relationship("User", back_populates="project")
+    # project_developers = Column(Integer, ForeignKey("project_developers.id"))
+
+
+class ProjectDevelopers(Base):
+    __tablename__ = "project_developers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String(256))
+
+    # user = relationship("User", back_populates="project_developers")
+    # project = relationship("Project", back_populates="project_developers")

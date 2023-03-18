@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Path, Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
 from typing import List
@@ -7,8 +7,8 @@ from app import crud, models, schemas  # Local import files.
 
 
 app = FastAPI(
-    title="SMRPOBackend",
-    description="Backend za SMRPO projekt",
+    title="SMRPO Backend API",
+    description="API for backend of SMRPO project.",
 )
 
 origins = [
@@ -26,7 +26,6 @@ app.add_middleware(
 # Init of db.
 models.Base.metadata.create_all(bind=engine)
 
-# CORE functionalities.
 
 # Dependency.
 def get_db():
@@ -37,25 +36,35 @@ def get_db():
         db.close()
 
 
-@app.get("/")
+@app.get("/", tags=["Root"])
 async def root():
-    return {"message": "Hello najbolsa SMRPO ekipa :)"}
+    return {"message": "Backend is up and running."}
 
 
-@app.get("/projects", response_model=List[schemas.Project])
+@app.get("/projects", response_model=List[schemas.Project], tags=["Projects"])
 async def list_all_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_all_projects(db, skip=skip, limit=limit)
 
 
-@app.get("/project", response_model=schemas.Project)
-async def get_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
-    return crud.get_project(db=db, name=project.name)
+@app.get("/project/{identifier}", response_model=schemas.Project, tags=["Projects"])
+async def get_project(identifier: int, db: Session = Depends(get_db)):
+    db_project = crud.get_project_by_id(db=db, identifier=identifier)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+    return db_project
 
 
-@app.post("/project", response_model=schemas.Project)
+@app.post("/project", response_model=schemas.Project, tags=["Projects"])
 async def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
-    # db_projekt = crud.getProjektbyName(db, imeProjekta=projekt.imeProjekta)
-    # print(db_projekt.imeProjekta)
-    # if db_projekt:
-    #     raise HTTPException(status_code=400, detail="Projekt ze obstaja")
+    # TODO: Add check if admin...Or should this be checked by frontend?
+    db_project = crud.get_project_by_name(db=db, name=project.name)
+    if db_project:
+        raise HTTPException(status_code=400, detail="Project with such name already exist.")
     return crud.create_project(db=db, project=project)
+
+
+@app.delete("/project/{identifier}", response_model=schemas.Project, tags=["Projects"])
+async def delete_project(identifier: int, db: Session = Depends(get_db)):
+    # We assume that frontend always serves only projects that actually exist.
+    # Therefore, there is no need for additional check on backend.
+    return crud.delete_project(db=db, identifier=identifier)
