@@ -109,7 +109,24 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 #-- end USERS
 
 
-
+#request for 1 user data
+@app.get('/uporabniki/{userName}', response_model=schemas.UserBase)
+def user(userName: str, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
+    return crud.get_UporabnikBase_by_username(db, userName)
+    #return {"user": 123124124, 'data': 'jwt test works'}
+    # current_user = Authorize.get_jwt_subject()
+    # return {"user": current_user, 'data': 'jwt test works'}
+#change pass
+#@app.get('/users/{id}/change-pass', response_model=schemas.UserBase)
+#def user(userName: str, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+#    Authorize.jwt_required()
+#    current_user = get_jwt_identity()
+#    print("krneki")
+#    return crud.get_UporabnikBase_by_username(db, userName)
+    #return {"user": 123124124, 'data': 'jwt test works'}
+    # current_user = Authorize.get_jwt_subject()
+    # return {"user": current_user, 'data': 'jwt test works'}
 
 """-----------EXAMPLES------------"""
 #TODO 
