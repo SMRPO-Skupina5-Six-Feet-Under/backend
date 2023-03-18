@@ -14,4 +14,7 @@ httpx==0.23.1
 requests
 
 #dodal jst
-pydantic~=1.10.2    
+pydantic~=1.10.2
+
+#prijava
+fastapi-jwt-auth==0.5.0

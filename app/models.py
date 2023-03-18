@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -9,10 +9,17 @@ class Uporabnik(Base):
 
     #atributi
     id = Column(Integer, primary_key=True, index=True)
-    imeUporabnika = Column(String)
+    userName = Column(String(256), unique=True)
+    firstName = Column(String(256))
+    lastName = Column(String(256))
+    email = Column(String(256), unique=True)
+    isAdmin = Column(Boolean, default=False)
+    password = Column(String(128))
+    permissions = Column(String)
+    lastLogin = Column(DateTime)
 
     #relacije/atributi drugje
-    projekt_id = Column(Integer, ForeignKey('projekt.id'))
+    projekt_id = Column(Integer, ForeignKey('projekt.id'), nullable=True)
     projekt = relationship("Projekt", back_populates="uporabniki")
 
 

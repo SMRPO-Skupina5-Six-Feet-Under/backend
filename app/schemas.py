@@ -1,19 +1,30 @@
+import datetime
+
 from pydantic import BaseModel, Field
 from typing import List
+from datetime import datetime
 
 
 #Shema za uporabnika 
 
 #base class
-class UporabnikBase(BaseModel):  
-    imeUporabnika: str
+class UserBase(BaseModel):
+    id: int
+    userName: str
+    firstName: str
+    lastName: str
+    email: str
+    isAdmin: bool
+    password: str
+    permissions: str
+    lastLogin: datetime
 
 #Create class
-class UporabnikCreate(UporabnikBase): 
+class UserCreate(UserBase):
     pass
 
 #končni class
-class Uporabnik(UporabnikBase): 
+class User(UserBase):
     id: int
     projekt_id: int 
 
@@ -33,7 +44,16 @@ class ProjektCreate(ProjektBase):
 #končni class
 class Projekt(ProjektBase):
     id: int
-    uporabniki: List[Uporabnik] = []
+    uporabniki: List[User] = []
 
     class Config:
         orm_mode = True
+
+
+
+
+
+## tega ni v BAZI (DTO objekt!!
+class LogInData(BaseModel):
+  userName: str
+  password: str
