@@ -1,5 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from .database import Base
 
 
@@ -26,14 +25,9 @@ class Project(Base):
     scrumMaster = Column(String(256))
     developers = Column(String(256))
 
-    # project_developers = Column(Integer, ForeignKey("project_developers.id"))
-
 
 class ProjectDevelopers(Base):
     __tablename__ = "project_developers"
 
     id = Column(Integer, primary_key=True, index=True)
     role = Column(String(256))
-
-    # user = relationship("User", back_populates="project_developers")
-    # project = relationship("Project", back_populates="project_developers")

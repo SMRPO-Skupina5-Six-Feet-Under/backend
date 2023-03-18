@@ -1,7 +1,38 @@
+import datetime
 from sqlalchemy.orm import Session
 from app import models
 from app import schemas
 
+
+def get_all_users(db: Session):
+    return db.query(models.User).all()
+
+
+def create_user(db: Session, user: schemas.UserCreate):
+    new_user = models.User(userName=user.userName, firstName=user.firstName, lastName=user.lastName, email=user.email,
+                           isAdmin=user.isAdmin, password=user.password, permissions=user.permissions)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+
+def check_user_username_exist(db: Session, uUserName: str):
+    return db.query(models.User).filter(models.User.userName == uUserName).first()
+
+
+def check_user_email_exist(db: Session, uEmail: str):
+    return db.query(models.User).filter(models.User.email == uEmail).first()
+
+
+def get_UporabnikBase_by_username(db: Session, userName: str):
+    return db.query(models.User).filter(models.User.userName == userName).first()
+
+
+def setUserLogInTime(db: Session, userId: int):
+    user: schemas.UserBase = db.query(models.User).filter(models.User.id == userId).first()
+    if user != None:
+        user.lastLogin = datetime.datetime.now().astimezone()
+        db.commit()
 
 def get_project_by_id(db: Session, identifier: int):
     return db.query(models.Project).filter(models.Project.id == identifier).first()

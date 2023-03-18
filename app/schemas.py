@@ -1,14 +1,11 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 
 
 class LogInData(BaseModel):
     userName: str
     password: str
-
-    class Config:
-        orm_mode = True
 
 
 class UserBase(BaseModel):
@@ -34,13 +31,6 @@ class UserCreate(BaseModel):
     isAdmin: bool
     password: str
     permissions: Optional[str]
-
-    class Config:
-        orm_mode = True
-
-
-class UserName(BaseModel):
-    userName: str
 
     class Config:
         orm_mode = True
