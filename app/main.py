@@ -1,33 +1,46 @@
+import datetime
+
 from fastapi import APIRouter, HTTPException, Path, Depends, FastAPI, status
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
 from typing import List
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
+from fastapi_jwt_auth import AuthJWT
+from fastapi_jwt_auth.exceptions import AuthJWTException
+from pydantic import BaseModel
+import copy
 
 #za middleware
 from fastapi.middleware.cors import CORSMiddleware
 
 #local import files
 from app import crud, models, schemas
+from .schemas import UserBase, LogInData
 
 app = FastAPI(
     title="SMRPOBackend",
     description="Backend za SMRPO projekt",
 )
 
-origins = [
-    ""
-]
+#"http://localhost",
+#"http://localhost:4200",
+#tu naj bi se napisalo url iz katerih je dovoljen dostop * naj bi bla za vse
+#
+origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=[""],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
 #init baze
+#models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
 models.Base.metadata.create_all(bind=engine)
+
 
 
 
@@ -42,12 +55,43 @@ def get_db():
     finally:
         db.close()
 
+
 @app.get("/")
 async def root():
     return {"message": "Hello najbolsa SMRPO ekipa :)"}
 
+#-- LOGIN
+class Settings(BaseModel):
+    authjwt_secret_key: str = "my_jwt_secret"
+@AuthJWT.load_config
+def get_config():
+    return Settings()
 
-#-------USERS-------
+@app.exception_handler(AuthJWTException)
+def authjwt_exception_handler(request: Request, exc: AuthJWTException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message}
+    )
+
+
+@app.post('/login')
+def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+
+    userTryingToLogIn: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
+    if(userTryingToLogIn != None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password):
+        access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName)
+        __returnUser = copy.deepcopy(userTryingToLogIn)
+        crud.setUserLogInTime(db, userTryingToLogIn.id)
+        return {"access_token": access_token, "user": __returnUser}
+    else:
+        raise HTTPException(status_code=401, detail='Incorrect username or password')
+
+
+##-- end LOGIN
+
+
+#-- USERS
 @app.get("/users", response_model=List[schemas.UserBase])
 async def get_all_users(db: Session = Depends(get_db)):
     return crud.get_all_users(db)
@@ -62,7 +106,7 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="User with this email already exists.")
     response = crud.create_user(db=db, user=user)
     return response
-
+#-- end USERS
 
 
 

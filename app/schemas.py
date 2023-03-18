@@ -1,13 +1,15 @@
+import datetime
+
 from pydantic import BaseModel, Field
-from typing import List
-from typing import Optional
+from typing import List, Optional
+from datetime import datetime
 
 
 #Shema za uporabnika 
 
 #base class
 class UserBase(BaseModel):
-    id: int  
+    id: int
     userName: str
     firstName: str
     lastName: str
@@ -15,7 +17,7 @@ class UserBase(BaseModel):
     isAdmin: bool
     password: str
     permissions: str
-    lastLogin: str
+    lastLogin: datetime
 
 class UserCreate(BaseModel):
     userName: str
@@ -27,13 +29,13 @@ class UserCreate(BaseModel):
     permissions: Optional[str]
 
 
-
+class Config:
+        orm_mode = True
 
 ## tega ni v BAZI (DTO objekt!!
 class LogInData(BaseModel):
   userName: str
   password: str
-
 
 """-----------EXAMPLES------------"""
 #Create class
@@ -65,6 +67,8 @@ class LogInData(BaseModel):
 
 #    class Config:
 #        orm_mode = True
+
+
 
 
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -16,7 +16,7 @@ class User(Base):
     isAdmin = Column(Boolean, default=False)
     password = Column(String(128))
     permissions = Column(String, nullable=True)
-    lastLogin = Column(String(256), nullable=True)
+    lastLogin = Column(DateTime, nullable=True)
 
     #relacije/atributi drugje
     #projekt_id = Column(Integer, ForeignKey('projekt.id'), nullable=True)
