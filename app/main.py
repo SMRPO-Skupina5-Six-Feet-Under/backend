@@ -106,7 +106,7 @@ def user(userName: str, db: Session = Depends(get_db), Authorize: AuthJWT = Depe
     return crud.get_UporabnikBase_by_username(db, userName)
 
 
-@app.get("/projects", response_model=List[schemas.Project], tags=["Projects"])
+@app.get("/project/all", response_model=List[schemas.Project], tags=["Projects"])
 async def list_all_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_all_projects(db, skip=skip, limit=limit)
 
@@ -133,3 +133,12 @@ async def delete_project(identifier: int, db: Session = Depends(get_db)):
     # We assume that frontend always serves only projects that actually exist.
     # Therefore, there is no need for additional check on backend.
     return crud.delete_project(db=db, identifier=identifier)
+
+
+@app.get("/project/roles/", tags=["Projects"])
+async def get_project_roles() -> list[schemas.ProjectRole]:
+    return [
+        schemas.ProjectRole(id=1, role="Product owner"),
+        schemas.ProjectRole(id=2, role="Scrum master"),
+        schemas.ProjectRole(id=3, role="Developer"),
+    ]

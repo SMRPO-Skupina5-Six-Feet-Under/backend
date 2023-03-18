@@ -55,3 +55,8 @@ class ProjectCreate(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class ProjectRole(BaseModel):
+    id: int
+    role: str
