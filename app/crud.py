@@ -53,10 +53,10 @@ def check_user_email_exist(db: Session, uEmail: str):
 # TODO potrebne operacije za uporabnika in projkete
 
 def get_UporabnikBase_by_username(db: Session, userName: str):
-    return db.query(models.Uporabnik).filter(models.Uporabnik.userName == userName).first()
+    return db.query(models.User).filter(models.User.userName == userName).first()
 
 def setUserLogInTime(db: Session, userId: int):
-    user: schemas.UserBase = db.query(models.Uporabnik).filter(models.Uporabnik.id == userId).first()
+    user: schemas.UserBase = db.query(models.User).filter(models.User.id == userId).first()
     if(user != None):
         user.lastLogin = datetime.datetime.now().astimezone()
         db.commit()
