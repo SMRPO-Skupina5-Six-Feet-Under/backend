@@ -1,13 +1,10 @@
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Boolean, DateTime
-from sqlalchemy.orm import relationship
-
+from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from .database import Base
 
-#TODO samo osnova, dodaj atribute in vse potrebno
+
 class User(Base):
     __tablename__ = "user"
 
-    #atributi
     id = Column(Integer, primary_key=True, index=True)
     userName = Column(String(256), unique=True)
     firstName = Column(String(256))
@@ -18,21 +15,19 @@ class User(Base):
     permissions = Column(String, nullable=True)
     lastLogin = Column(DateTime, nullable=True)
 
-    #relacije/atributi drugje
-    #projekt_id = Column(Integer, ForeignKey('projekt.id'), nullable=True)
-    #projekt = relationship("Projekt", back_populates="uporabniki")
+
+class Project(Base):
+    __tablename__ = "project"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(256))
+    productOwner = Column(String(256))
+    scrumMaster = Column(String(256))
+    developers = Column(String(256))
 
 
+class ProjectDevelopers(Base):
+    __tablename__ = "project_developers"
 
-
-"""-----------EXAMPLES------------"""
-
-#class Projekt(Base):
-    #__tablename__ = "projekt"
-
-    #atributi
-    #id = Column(Integer, primary_key=True, index=True)
-    #imeProjekta = Column(String)
-
-    #relacije/atrbuti drugje 
-    #uporabniki = relationship("Uporabnik", back_populates="projekt")
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String(256))
