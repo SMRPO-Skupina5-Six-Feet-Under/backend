@@ -9,7 +9,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 from pydantic import BaseModel
 import copy
 from fastapi.middleware.cors import CORSMiddleware  # For middleware.
-from app import crud, models, schemas  # Local import files.
+from app import crud, models, schemas, static  # Local import files.
 
 
 app = FastAPI(
@@ -122,9 +122,16 @@ async def get_project(identifier: int, db: Session = Depends(get_db)):
 @app.post("/project", response_model=schemas.Project, tags=["Projects"])
 async def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
     # TODO: Add check if admin...Or should this be checked by frontend?
+    # Mandatory fields should be probably checked by frontend (check if they're all fulfilled).
+
     db_project = crud.get_project_by_name(db=db, name=project.name)
     if db_project:
         raise HTTPException(status_code=400, detail="Project with such name already exist.")
+
+    check, message = static.check_project_roles(project.projectParticipants, db)
+    if not check:
+        raise HTTPException(status_code=400, detail=message)
+
     return crud.create_project(db=db, project=project)
 
 

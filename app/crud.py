@@ -28,6 +28,10 @@ def get_UporabnikBase_by_username(db: Session, userName: str):
     return db.query(models.User).filter(models.User.userName == userName).first()
 
 
+def get_user_by_id(db: Session, identifier: int):
+    return db.query(models.User).filter(models.User.id == identifier).first()
+
+
 def setUserLogInTime(db: Session, userId: int):
     user: schemas.UserBase = db.query(models.User).filter(models.User.id == userId).first()
     if user != None:
