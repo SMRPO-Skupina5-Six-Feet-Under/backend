@@ -73,7 +73,7 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
 @app.post('/login', tags=["Login"])
 def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     userTryingToLogIn: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
-    if(userTryingToLogIn != None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password):
+    if userTryingToLogIn != None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password:
         access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName)
         __returnUser = copy.deepcopy(userTryingToLogIn)
         crud.setUserLogInTime(db, userTryingToLogIn.id)
@@ -91,9 +91,9 @@ async def get_all_users(db: Session = Depends(get_db)):
 async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     userNameExists = crud.check_user_username_exist(db, user.userName)
     emailExists = crud.check_user_email_exist(db, user.email)
-    if(userNameExists):
+    if userNameExists:
         raise HTTPException(status_code=400, detail="User with this username already exists.")
-    elif(emailExists):
+    elif emailExists:
         raise HTTPException(status_code=400, detail="User with this email already exists.")
     response = crud.create_user(db=db, user=user)
     return response

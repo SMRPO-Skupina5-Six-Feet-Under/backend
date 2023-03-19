@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey
 from .database import Base
 
 
@@ -21,13 +21,14 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(256))
-    productOwner = Column(String(256))
-    scrumMaster = Column(String(256))
-    developers = Column(String(256))
 
 
-class ProjectDevelopers(Base):
-    __tablename__ = "project_developers"
+class ProjectParticipants(Base):
+    __tablename__ = "project_participants"
 
     id = Column(Integer, primary_key=True, index=True)
-    role = Column(String(256))
+
+    roleId = Column(Integer)
+
+    projectId = Column(Integer, ForeignKey("project.id"))
+    userId = Column(Integer, ForeignKey("user.id"))

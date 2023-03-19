@@ -47,12 +47,22 @@ def get_all_projects(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_project(db: Session, project: schemas.ProjectCreate):
-    db_project = models.Project(name=project.name, productOwner=project.productOwner,
-                                scrumMaster=project.scrumMaster, developers=project.developers)
+    # Add to project table.
+    db_project = models.Project(name=project.name)
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
-    return db_project
+
+    # Add to project participants table.
+    for user in project.projectParticipants:
+        db_project_participant = models.ProjectParticipants(roleId=user.roleId, projectId=db_project.id, userId=user.userId)
+        db.add(db_project_participant)
+        db.commit()
+        db.refresh(db_project_participant)
+
+    response_project_data = schemas.Project(name=project.name, id=db_project.id, projectParticipants=project.projectParticipants)
+
+    return response_project_data
 
 
 def delete_project(db: Session, identifier: int):

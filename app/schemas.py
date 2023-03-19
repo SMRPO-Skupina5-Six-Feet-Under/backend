@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -36,12 +36,27 @@ class UserCreate(BaseModel):
         orm_mode = True
 
 
+class ProjectParticipantsInput(BaseModel):
+    roleId: int
+    userId: int
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectParticipants(BaseModel):
+    roleId: int
+    projectId: int
+    userId: int
+
+    class Config:
+        orm_mode = True
+
+
 class Project(BaseModel):
     name: str
     id: int
-    productOwner: str
-    scrumMaster: str
-    developers: str  # List[UserName]
+    projectParticipants: List[ProjectParticipantsInput]
 
     class Config:
         orm_mode = True
@@ -49,9 +64,7 @@ class Project(BaseModel):
 
 class ProjectCreate(BaseModel):
     name: str
-    productOwner: str
-    scrumMaster: str
-    developers: str  # List[UserName]
+    projectParticipants: List[ProjectParticipantsInput]
 
     class Config:
         orm_mode = True
