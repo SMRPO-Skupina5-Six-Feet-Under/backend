@@ -73,13 +73,32 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
 @app.post('/login', tags=["Login"])
 def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     userTryingToLogIn: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
-    if userTryingToLogIn != None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password:
+    if userTryingToLogIn is not None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password:
         access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName)
         __returnUser = copy.deepcopy(userTryingToLogIn)
         crud.setUserLogInTime(db, userTryingToLogIn.id)
         return {"access_token": access_token, "user": __returnUser}
     else:
         raise HTTPException(status_code=401, detail='Incorrect username or password')
+
+
+#change pass
+@app.post('/users/{userId}/change-password', response_model=schemas.UserBase)
+def user(userId: int, changePasswordData: schemas.ChangePasswordData,db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    print("newPassword: "+changePasswordData.newPassword)
+    Authorize.jwt_required()
+    user_name: str = Authorize.get_jwt_subject()  #get username from logged in user - trough Authentication Header
+    user_to_change: schemas.UserBase = crud.get_user_by_id(db, userId)
+    if user_to_change is None:
+        raise HTTPException(status_code=404, detail="User with this id is not present in database.")
+    if user_to_change.userName != user_name:
+        raise HTTPException(status_code=400, detail="Id and username missmatch")
+    if changePasswordData is None or not changePasswordData.newPassword:
+        raise HTTPException(status_code=400, detail="New password not provided")
+    crud.changeUserPassword(db, userId, changePasswordData.newPassword)
+    changedPasswordUser: schemas.UserBase = crud.get_user_by_id(db, userId)
+    return changedPasswordUser
+
 
 
 @app.get("/users", response_model=List[schemas.UserBase], tags=["Users"])

@@ -3,10 +3,6 @@ from typing import Optional, List
 from datetime import datetime
 
 
-class LogInData(BaseModel):
-    userName: str
-    password: str
-
 
 class UserBase(BaseModel):
     id: int
@@ -16,7 +12,7 @@ class UserBase(BaseModel):
     email: str
     isAdmin: bool
     password: str
-    permissions: str
+    permissions: Optional[str]
     lastLogin: datetime
 
     class Config:
@@ -74,12 +70,11 @@ class ProjectRole(BaseModel):
     role: str
 
 
-
-
-## tega ni v BAZI (DTO objekt!!
+## tega ni v BAZI (DTO objekt)!!
 class LogInData(BaseModel):
-  userName: str
-  password: str
+    userName: str
+    password: str
+
 
 class ChangePasswordData(BaseModel):
-  newPassword: str
+    newPassword: str

@@ -34,8 +34,14 @@ def get_user_by_id(db: Session, identifier: int):
 
 def setUserLogInTime(db: Session, userId: int):
     user: schemas.UserBase = db.query(models.User).filter(models.User.id == userId).first()
-    if user != None:
+    if user is not None:
         user.lastLogin = datetime.datetime.now().astimezone()
+        db.commit()
+
+def changeUserPassword(db: Session, userId: int, newPassword: str):
+    user: schemas.UserBase = db.query(models.User).filter(models.User.id == userId).first()
+    if user is not None:
+        user.password = newPassword
         db.commit()
 
 def get_project_by_id(db: Session, identifier: int):
