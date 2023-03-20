@@ -34,7 +34,7 @@ app.add_middleware(
 
 
 # init baze
-# models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
+#models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -85,8 +85,10 @@ def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize
 #change pass
 @app.post('/users/{userId}/change-password', response_model=schemas.UserBase)
 def user(userId: int, changePasswordData: schemas.ChangePasswordData,db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    print("newPassword: "+changePasswordData.newPassword)
-    Authorize.jwt_required()
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
     user_name: str = Authorize.get_jwt_subject()  #get username from logged in user - trough Authentication Header
     user_to_change: schemas.UserBase = crud.get_user_by_id(db, userId)
     if user_to_change is None:
