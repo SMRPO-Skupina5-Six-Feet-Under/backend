@@ -13,7 +13,7 @@ class UserBase(BaseModel):
     isAdmin: bool
     password: str
     permissions: Optional[str]
-    lastLogin: datetime
+    lastLogin: Optional[datetime]
 
     class Config:
         orm_mode = True

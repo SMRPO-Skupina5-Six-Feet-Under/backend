@@ -108,7 +108,7 @@ async def get_all_users(db: Session = Depends(get_db)):
     return crud.get_all_users(db)
 
 
-@app.post("/users/", status_code=status.HTTP_201_CREATED, tags=["Users"])
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserBase, tags=["Users"])
 async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     userNameExists = crud.check_user_username_exist(db, user.userName)
     emailExists = crud.check_user_email_exist(db, user.email)
