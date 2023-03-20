@@ -16,8 +16,8 @@ class UserBase(BaseModel):
     email: str
     isAdmin: bool
     password: str
-    permissions: str
-    lastLogin: datetime
+    permissions: Optional[str]
+    lastLogin: Optional[datetime]
 
     class Config:
         orm_mode = True

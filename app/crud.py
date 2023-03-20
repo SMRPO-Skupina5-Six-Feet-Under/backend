@@ -14,6 +14,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    return get_UporabnikBase_by_username(db=db, userName=user.userName)
 
 
 def check_user_username_exist(db: Session, uUserName: str):
