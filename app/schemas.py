@@ -33,8 +33,7 @@ class UserCreate(BaseModel):
     permissions: Optional[str]
 
     class Config:
-        orm_mode = True
-
+      orm_mode = True
 
 class ProjectParticipantsInput(BaseModel):
     roleId: int
@@ -73,3 +72,14 @@ class ProjectCreate(BaseModel):
 class ProjectRole(BaseModel):
     id: int
     role: str
+
+
+
+
+## tega ni v BAZI (DTO objekt!!
+class LogInData(BaseModel):
+  userName: str
+  password: str
+
+class ChangePasswordData(BaseModel):
+  newPassword: str
