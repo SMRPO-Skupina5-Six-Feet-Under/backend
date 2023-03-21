@@ -1,45 +1,32 @@
-from pydantic import BaseModel, Field
-from typing import List
-from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime, date
 
 
-#Shema za uporabnika 
-
-#base class
-class UporabnikBase(BaseModel):  
-    imeUporabnika: str
-
-#Create class
-class UporabnikCreate(UporabnikBase): 
-    pass
-
-#končni class
-class Uporabnik(UporabnikBase): 
+class UserBase(BaseModel):
     id: int
-    projekt_id: int 
-
-    class Config:
-        orm_mode = True
-
-#shema za projekt
-
-#base class
-class ProjektBase(BaseModel):
-    imeProjekta: str
-
-#Create class
-class ProjektCreate(ProjektBase): 
-    pass
-
-#končni class
-class Projekt(ProjektBase):
-    id: int
-    uporabniki: List[Uporabnik] = []
+    userName: str
+    firstName: str
+    lastName: str
+    email: str
+    isAdmin: bool
+    password: str
+    lastLogin: Optional[datetime]
 
     class Config:
         orm_mode = True
 
 
+class UserCreate(BaseModel):
+    userName: str
+    firstName: str
+    lastName: str
+    email: str
+    isAdmin: bool
+    password: str
+
+    class Config:
+        orm_mode = True
 
 
 # ============================= SHEMA ZA STORY =============================
@@ -71,3 +58,70 @@ class Story(StoryBase):
     #subtasks: List["Task"] = []
     class Config:
         orm_mode = True
+class ProjectParticipantsInput(BaseModel):
+    roleId: int
+    userId: int
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectParticipants(BaseModel):
+    roleId: int
+    projectId: int
+    userId: int
+
+    class Config:
+        orm_mode = True
+
+
+class Project(BaseModel):
+    name: str
+    id: int
+    projectParticipants: List[ProjectParticipantsInput]
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectCreate(BaseModel):
+    name: str
+    projectParticipants: List[ProjectParticipantsInput]
+
+    class Config:
+        orm_mode = True
+
+
+class Sprint(BaseModel):
+    id: int
+    startDate: date
+    endDate: date
+    velocity: float
+    projectId: int
+
+    class Config:
+        orm_mode = True
+
+
+class SprintCreate(BaseModel):
+    startDate: date
+    endDate: date
+    velocity: float
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectRole(BaseModel):
+    id: int
+    role: str
+
+
+# tega ni v BAZI (DTO objekt)!!
+class LogInData(BaseModel):
+    userName: str
+    password: str
+
+
+class ChangePasswordData(BaseModel):
+    newPassword: str

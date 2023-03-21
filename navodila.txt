@@ -10,7 +10,7 @@ najprej zaženi docker za bazo
     ukaz(naslednic): [sudo] docker start smrpodb
 potem zaženi app:
 prestavi se v direktorij backend nato zaženi: 
-    ukaz: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+    ukaz: uvicorn app.main:app --host 127.0.0.1 --port 8003 --reload
 
  odpri browser na localhost:8003
 

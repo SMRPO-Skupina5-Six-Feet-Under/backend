@@ -1,33 +1,47 @@
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Boolean, Date
-from sqlalchemy.orm import relationship
-
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, ForeignKey, Float
 from .database import Base
 
-#TODO samo osnova, dodaj atribute in vse potrebno
-class Uporabnik(Base):
-    __tablename__ = "uporabnik"
 
-    #atributi
+class User(Base):
+    __tablename__ = "user"
+
     id = Column(Integer, primary_key=True, index=True)
-    imeUporabnika = Column(String)
+    userName = Column(String(256), unique=True)
+    firstName = Column(String(256))
+    lastName = Column(String(256))
+    email = Column(String(256), unique=True)
+    isAdmin = Column(Boolean, default=False)
+    password = Column(String(128))
+    lastLogin = Column(DateTime, nullable=True)
 
-    #relacije/atributi drugje
-    projekt_id = Column(Integer, ForeignKey('projekt.id'))
-    projekt = relationship("Projekt", back_populates="uporabniki")
 
+class Project(Base):
+    __tablename__ = "project"
 
-
-class Projekt(Base):
-    __tablename__ = "projekt"
-
-    #atributi
     id = Column(Integer, primary_key=True, index=True)
-    imeProjekta = Column(String)
+    name = Column(String(256))
 
-    #relacije/atrbuti drugje 
-    uporabniki = relationship("User", back_populates="projekt")
-    stories = relationship("Story", back_populates="projekt")
 
+class ProjectParticipants(Base):
+    __tablename__ = "project_participants"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    roleId = Column(Integer)
+
+    projectId = Column(Integer, ForeignKey("project.id"))
+    userId = Column(Integer, ForeignKey("user.id"))
+
+
+class Sprint(Base):
+    __tablename__ = "sprint"
+
+    id = Column(Integer, primary_key=True, index=True)
+    startDate = Column(Date, nullable=True)
+    endDate = Column(Date, nullable=True)
+    velocity = Column(Float)
+
+    projectId = Column(Integer, ForeignKey("project.id"))
 
 class Story(Base):
     __tablename__ = "zgodba"
