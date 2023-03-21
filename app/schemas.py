@@ -118,7 +118,9 @@ class StoryCreate(StoryBase):
 
 class StoryUpdate(StoryBase):
     endDate: date = None
-    sprint_id: int  = None
+    sprint_id: int = None
+    isDone: bool = False
+
 class Story(StoryBase):
     id: int
 

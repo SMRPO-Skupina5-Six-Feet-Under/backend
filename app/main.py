@@ -144,15 +144,15 @@ async def get_project(identifier: int, db: Session = Depends(get_db)):
 async def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # Mandatory fields should be checked by frontend (check if they're all fulfilled).
 
-    # try:
-    #     Authorize.jwt_required()
-    # except:
-    #     raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
 
-    # user_name = Authorize.get_jwt_subject()
-    # db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
-    # if not db_user_data.isAdmin:
-    #     raise HTTPException(status_code=400, detail="Currently logged user must have admin rights, in order to perform this action.")
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    if not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must have admin rights, in order to perform this action.")
 
     db_project = crud.get_project_by_name(db=db, name=project.name)
     if db_project:
@@ -258,16 +258,23 @@ async def read_story(id: int, db: Session = Depends(get_db)):
 async def create_story(story: schemas.StoryCreate, db: Session = Depends(get_db)):
     db_story = crud.get_story_by_name(db, name=story.name)
     if db_story :
-        raise HTTPException(status_code=400, detail="Story already exists") 
+        raise HTTPException(status_code=400, detail="Story already exists")
+    
+    #TODO check if project exists
 
     return crud.create_story(db=db, story=story)
 
 #update story
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])
-async def update_story(id: int, story: schemas.Story, db: Session = Depends(get_db)):
+async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #TODO check that name is not duplicate
+    #TODO check that sprint exists
+    #TODO check that endDate is after startDate
+    #TODO prevent changing projectId
 
     return crud.update_story_generic(db=db, story=story, story_id=id)
 
@@ -277,6 +284,9 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #TODO check that sprint exists
+    #TODO prevent changing aynthing else
 
     return crud.update_story_sprint_id(db=db, story=story, story_id=id)
 
@@ -286,15 +296,17 @@ async def update_story_isDone(id: int, story: schemas.Story, db: Session = Depen
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #TODO check that endDate is after startDate
+    #TODO prevent changing aynthing else
 
     return crud.update_story_isDone(db=db, story=story, story_id=id)
 
 #delete story
 @app.delete("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def delete_story(id: int, db: Session = Depends(get_db)):
-    db_story = crud.get_story_by_id(db, id=id)
+    db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
     return crud.delete_story(db=db, story_id=id)
-

@@ -144,7 +144,7 @@ def get_all_stories_in_project_with_priority(db: Session, project_id: int, prior
     return db.query(models.Story).filter(models.Story.projectId == project_id).filter(models.Story.priority == priority).offset(skip).limit(limit).all()
 
 # update story 
-def update_story_generic(db: Session, story: schemas.Story, story_id: int):
+def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int):
     db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
 
     #posodobi vrednosti če so podane drugače ostanejo stare
@@ -162,7 +162,7 @@ def update_story_generic(db: Session, story: schemas.Story, story_id: int):
     return db_new_story
 
 # update only sprint_id
-def update_story_sprint_id(db: Session, story: schemas.Story, story_id: int):
+def update_story_sprint_id(db: Session, story: schemas.StoryUpdate, story_id: int):
     db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
 
     #posodobi vrednosti če so podane drugače ostanejo stare
