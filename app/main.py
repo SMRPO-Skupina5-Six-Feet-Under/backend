@@ -129,7 +129,15 @@ def user(userName: str, db: Session = Depends(get_db), Authorize: AuthJWT = Depe
 
 @app.get("/project/all", response_model=List[schemas.Project], tags=["Projects"])
 async def list_all_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_all_projects(db, skip=skip, limit=limit)
+    db_projects = crud.get_all_projects(db, skip=skip, limit=limit)
+
+    response_data: List[schemas.Project] = []
+    for project in db_projects:
+        db_project_participants = crud.get_project_participants(db=db, projectId=project.id)
+        project_data = schemas.Project(name=project.name, id=project.id, projectParticipants=db_project_participants)
+        response_data.append(project_data)
+
+    return response_data
 
 
 @app.get("/project/{identifier}", response_model=schemas.Project, tags=["Projects"])
@@ -137,7 +145,11 @@ async def get_project(identifier: int, db: Session = Depends(get_db)):
     db_project = crud.get_project_by_id(db=db, identifier=identifier)
     if not db_project:
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
-    return db_project
+
+    db_project_participants = crud.get_project_participants(db=db, projectId=identifier)
+    response_project_data = schemas.Project(name=db_project.name, id=db_project.id, projectParticipants=db_project_participants)
+
+    return response_project_data
 
 
 @app.post("/project", response_model=schemas.Project, tags=["Projects"])

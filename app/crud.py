@@ -1,7 +1,6 @@
 import datetime
 from sqlalchemy.orm import Session
-from app import models
-from app import schemas
+from app import models, schemas
 
 
 def get_all_users(db: Session):
@@ -83,6 +82,10 @@ def delete_project(db: Session, identifier: int):
     db.delete(db_project)
     db.commit()
     return db_project
+
+
+def get_project_participants(db: Session, projectId: int):
+    return db.query(models.ProjectParticipants).filter(models.ProjectParticipants.projectId == projectId).all()
 
 
 def get_all_sprints(db: Session, projectId: int, skip: int = 0, limit: int = 1000):
