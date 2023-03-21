@@ -48,18 +48,18 @@ class Projekt(ProjektBase):
 class StoryBase(BaseModel):
     name: str
     storyDescription: str
-    priority: int
+    priority: str
     businessValue: int
     timeEstimate: int
     startDate: datetime
     projectId: int
 
 #Create class
-class ZgodbaCreate(StoryBase):
+class StoryCreate(StoryBase):
     pass
 
 #končni class
-class Zgodba(StoryBase):
+class Story(StoryBase):
     id: int
 
     isDone: bool = False
