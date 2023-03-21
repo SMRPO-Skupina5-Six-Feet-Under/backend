@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List
+from datetime import datetime
 
 
 #Shema za uporabnika 
@@ -38,22 +39,35 @@ class Projekt(ProjektBase):
     class Config:
         orm_mode = True
 
-#shema za zgodbo
+
+
+
+# ============================= SHEMA ZA STORY =============================
 
 #base class
-class ZgodbaBase(BaseModel):
-    imeZgodbe: str
-    opisZgodbe: str
-    userGiven_id_zgodbe: int
+class StoryBase(BaseModel):
+    name: str
+    storyDescription: str
+    priority: int
+    businessValue: int
+    timeEstimate: int
+    startDate: datetime
+    projectId: int
 
 #Create class
-class ZgodbaCreate(ZgodbaBase):
+class ZgodbaCreate(StoryBase):
     pass
 
 #končni class
-class Zgodba(ZgodbaBase):
+class Zgodba(StoryBase):
     id: int
-    projekt_id: int
 
+    isDone: bool = False
+    endDate: datetime = None
+
+    sprint_id: int = None
+
+    #TODO povezava z nalogami
+    #subtasks: List["Task"] = []
     class Config:
         orm_mode = True
