@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, ForeignKey, Float
 from .database import Base
 
 
@@ -12,7 +12,6 @@ class User(Base):
     email = Column(String(256), unique=True)
     isAdmin = Column(Boolean, default=False)
     password = Column(String(128))
-    permissions = Column(String, nullable=True)
     lastLogin = Column(DateTime, nullable=True)
 
 
@@ -32,3 +31,14 @@ class ProjectParticipants(Base):
 
     projectId = Column(Integer, ForeignKey("project.id"))
     userId = Column(Integer, ForeignKey("user.id"))
+
+
+class Sprint(Base):
+    __tablename__ = "sprint"
+
+    id = Column(Integer, primary_key=True, index=True)
+    startDate = Column(Date, nullable=True)
+    endDate = Column(Date, nullable=True)
+    velocity = Column(Float)
+
+    projectId = Column(Integer, ForeignKey("project.id"))

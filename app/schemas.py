@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
-
+from datetime import datetime, date
 
 
 class UserBase(BaseModel):
@@ -12,7 +11,6 @@ class UserBase(BaseModel):
     email: str
     isAdmin: bool
     password: str
-    permissions: Optional[str]
     lastLogin: Optional[datetime]
 
     class Config:
@@ -26,10 +24,10 @@ class UserCreate(BaseModel):
     email: str
     isAdmin: bool
     password: str
-    permissions: Optional[str]
 
     class Config:
-      orm_mode = True
+        orm_mode = True
+
 
 class ProjectParticipantsInput(BaseModel):
     roleId: int
@@ -65,12 +63,32 @@ class ProjectCreate(BaseModel):
         orm_mode = True
 
 
+class Sprint(BaseModel):
+    id: int
+    startDate: date
+    endDate: date
+    velocity: float
+    projectId: int
+
+    class Config:
+        orm_mode = True
+
+
+class SprintCreate(BaseModel):
+    startDate: date
+    endDate: date
+    velocity: float
+
+    class Config:
+        orm_mode = True
+
+
 class ProjectRole(BaseModel):
     id: int
     role: str
 
 
-## tega ni v BAZI (DTO objekt)!!
+# tega ni v BAZI (DTO objekt)!!
 class LogInData(BaseModel):
     userName: str
     password: str
