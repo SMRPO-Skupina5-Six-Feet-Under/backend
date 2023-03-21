@@ -47,7 +47,7 @@ async def root():
     return {"message": "Hello najbolsa SMRPO ekipa :)"}
 
 # ============== ZGODBE ==============
-#TODO get post put delete za zgodbe
+#TODO checks if user is looged in and has right to create stories in project
 
 #pridobi vse zgodbe v projektu z id-jem
 @app.get("/stories/{project_id}", response_model=List[schemas.Story])
