@@ -141,9 +141,18 @@ async def get_project(identifier: int, db: Session = Depends(get_db)):
 
 
 @app.post("/project", response_model=schemas.Project, tags=["Projects"])
-async def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
-    # Add check if admin...Or should this be checked by frontend?
-    # Mandatory fields should be probably checked by frontend (check if they're all fulfilled).
+async def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Mandatory fields should be checked by frontend (check if they're all fulfilled).
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    if not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must have admin rights, in order to perform this action.")
 
     db_project = crud.get_project_by_name(db=db, name=project.name)
     if db_project:
@@ -191,19 +200,25 @@ async def get_sprint(sprintId: int, db: Session = Depends(get_db)):
 
 @app.post("/sprint/{projectId}", response_model=schemas.Sprint, tags=["Sprints"])
 async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    # Add check if admin...Or should this be checked by frontend?
-    # Mandatory fields should be probably checked by frontend (check if they're all fulfilled).
+    # Mandatory fields should be checked by frontend (check if they're all fulfilled).
     # Make sure that frontend takes care of correct datetime format (e.g. so it is not just random string).
-    """
+
     try:
         Authorize.jwt_required()
     except:
         raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
-    """
 
     db_project = crud.get_project_by_id(db=db, identifier=projectId)
     if not db_project:
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    if db_user_project_role.roleId != 2:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
 
     if sprint.velocity <= 0:
         raise HTTPException(status_code=400, detail="Sprint velocity cannot be less or equal to zero.")
@@ -219,9 +234,5 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
     for current_sprint in all_sprints:
         if sprint.startDate <= current_sprint.startDate <= sprint.endDate or sprint.startDate <= current_sprint.endDate <= sprint.endDate:
             raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
-
-    # Make sure that currently logged user has a role of scrum master within the project.
-    #user_name = Authorize.get_jwt_subject()  # get username from logged in user - trough Authentication Header
-    #user_to_change = crud.get_user_by_id(db, userId)
 
     return crud.create_sprint(db=db, sprint=sprint, projectId=projectId)
