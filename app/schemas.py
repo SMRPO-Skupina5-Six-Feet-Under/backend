@@ -108,19 +108,23 @@ class StoryBase(BaseModel):
     timeEstimate: int
     startDate: datetime
     projectId: int
+    
 
 #Create class
 class StoryCreate(StoryBase):
     pass
 
 #končni class
+
+class StoryUpdate(StoryBase):
+    endDate: str = None
+    sprint_id: int  = None
 class Story(StoryBase):
     id: int
 
-    isDone: bool = False
     endDate: datetime = None
-
     sprint_id: int = None
+    isDone: bool = False
 
     #TODO povezava z nalogami
     #subtasks: List["Task"] = []

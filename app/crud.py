@@ -124,7 +124,7 @@ def get_story_by_name(db: Session, name: str):
 
 #ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, startDate=story.startDate, projectId=story.projectId) 
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, startDate=story.startDate, projectId=story.projectId, isDone=False)
     db.add(db_story)
     db.commit()
     db.refresh(db_story)

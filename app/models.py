@@ -45,7 +45,7 @@ class Sprint(Base):
     projectId = Column(Integer, ForeignKey("project.id"))
 
 class Story(Base):
-    __tablename__ = "zgodba"
+    __tablename__ = "story"
 
     #======================== atributi ========================
     id = Column(Integer, primary_key=True, index=True) #ID zgodbe
@@ -62,14 +62,14 @@ class Story(Base):
     #================= relacije/atrbuti drugje ==================
     #povezava s projektom
     projectId = Column(Integer, ForeignKey('project.id'))
-    project = relationship("Project", back_populates="zgodbe")
+    #project = relationship("Project", back_populates="zgodbe")
 
     #TODO povezava s sprintom
     sprint_id = Column(Integer, ForeignKey('sprint.id'))
-    sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
+    #sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
 
 
     #TODO povezava z nalogami
-    subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v sprintu
+    #subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v sprintu
 
     
