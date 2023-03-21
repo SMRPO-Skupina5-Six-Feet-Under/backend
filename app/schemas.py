@@ -29,35 +29,6 @@ class UserCreate(BaseModel):
         orm_mode = True
 
 
-# ============================= SHEMA ZA STORY =============================
-
-#base class
-class StoryBase(BaseModel):
-    name: str
-    storyDescription: str
-    priority: str
-    businessValue: int
-    timeEstimate: int
-    startDate: datetime
-    projectId: int
-
-#Create class
-class StoryCreate(StoryBase):
-    pass
-
-#končni class
-class Story(StoryBase):
-    id: int
-
-    isDone: bool = False
-    endDate: datetime = None
-
-    sprint_id: int = None
-
-    #TODO povezava z nalogami
-    #subtasks: List["Task"] = []
-    class Config:
-        orm_mode = True
 class ProjectParticipantsInput(BaseModel):
     roleId: int
     userId: int
@@ -125,3 +96,33 @@ class LogInData(BaseModel):
 
 class ChangePasswordData(BaseModel):
     newPassword: str
+
+# ============================= SHEMA ZA STORY =============================
+
+#base class
+class StoryBase(BaseModel):
+    name: str
+    storyDescription: str
+    priority: str
+    businessValue: int
+    timeEstimate: int
+    startDate: datetime
+    projectId: int
+
+#Create class
+class StoryCreate(StoryBase):
+    pass
+
+#končni class
+class Story(StoryBase):
+    id: int
+
+    isDone: bool = False
+    endDate: datetime = None
+
+    sprint_id: int = None
+
+    #TODO povezava z nalogami
+    #subtasks: List["Task"] = []
+    class Config:
+        orm_mode = True
