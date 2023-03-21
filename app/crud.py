@@ -25,9 +25,14 @@ def create_projekt(db: Session, projekt: schemas.ProjektCreate):
 #TODO potrebne operacije za zgodbe
 #to dela anze
 
-#get zgodba by name 
-def get_story(db: Session, name: str):
-    return db.query(models.Story).filter(models.Story.anme == name).first()
+#get zgodba by id 
+def get_story_by_id(db: Session, story_id: int):
+    return db.query(models.Story).filter(models.Story.id == story_id).first()
+
+#get zgodba by name
+def get_story_by_name(db: Session, name: str):
+    return db.query(models.Story).filter(models.Story.name == name).first()
+
 
 #ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
@@ -73,6 +78,19 @@ def update_story_sprint_id(db: Session, story: schemas.Story, story_id: int):
 
     #posodobi vrednosti če so podane drugače ostanejo stare
     db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id == None else story.sprint_id
+
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+#update isDone and endDate of story
+def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    #posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.isDone = db_new_story.isDone if story.isDone == None else story.isDone
+    db_new_story.endDate = db_new_story.endDate if story.endDate == None else story.endDate
 
     db.commit()
     db.refresh(db_new_story)
