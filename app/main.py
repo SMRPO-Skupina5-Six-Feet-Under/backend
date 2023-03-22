@@ -248,13 +248,15 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
             raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
     return crud.create_sprint(db=db, sprint=sprint, projectId=projectId)
 
+
 # ============== ZGODBE ==============
-#pridobi vse zgodbe v projektu z id-jem
+# pridobi vse zgodbe v projektu z id-jem
 @app.get("/stories/{project_id}", response_model=List[schemas.Story], tags=["Stories"])
 async def read_all_stories_in_project(project_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_all_stories_in_project(db, project_id, skip=skip, limit=limit)
 
-#pridobi eno zgodbo z id-jem
+
+# pridobi eno zgodbo z id-jem
 @app.get("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def read_story(id: int, db: Session = Depends(get_db)):
     db_story = crud.get_story_by_id(db, story_id=id)
@@ -263,11 +265,12 @@ async def read_story(id: int, db: Session = Depends(get_db)):
     
     return db_story
 
-#create story in project
+
+# create story in project
 @app.post("/story", response_model=schemas.Story, tags=["Stories"])
 async def create_story(story: schemas.StoryCreate, tests: List[schemas.AcceptenceTestCreate] , db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
 
-    #check if user is logged in
+    # check if user is logged in
     try:
         Authorize.jwt_required()
     except:
@@ -278,28 +281,27 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=story.projectId, userId=db_user_data.id)
     if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
-    if db_user_project_role.roleId != 2:
-        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+    if db_user_project_role.roleId == 3:
+        raise HTTPException(status_code=400, detail="Currently logged user must be product owner or scrum master at this project, in order to perform this action.")
 
-
-    #check if story with same name already exists
+    # check if story with same name already exists
     db_story = crud.get_story_by_name(db, name=story.name)
     if db_story :
         raise HTTPException(status_code=400, detail="Story already exists")
     
-    #check if project with given id exists
+    # check if project with given id exists
     db_project = crud.get_project_by_id(db=db, identifier=story.projectId)
     if not db_project:
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
-    #check if there is any tests
+    # check if there is any tests
     if tests is None:
         raise HTTPException(status_code=400, detail="Acceptence tests cannot be empty.")
     
-    #create the story
+    # create the story
     new_story = crud.create_story(db=db, story=story)
 
-    #create and add tests to story
+    # create and add tests to story
     for test in tests:
         if test.description is None:
             raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
@@ -308,7 +310,8 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     
     return new_story
 
-#update story
+
+# update story
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
 
@@ -352,36 +355,38 @@ async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depend
     
     return crud.update_story_generic(db=db, story=story, story_id=id)
 
-#update only sprint id of story 
+
+# update only sprint id of story
 @app.put("/story/{id}/sprint", response_model=schemas.Story, tags=["Stories"])
 async def update_story_sprint(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
     
-    #check if story with given id exists
+    # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    #check that sprint with given id exists
+    # check that sprint with given id exists
     db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
     if db_sprint is None:
         raise HTTPException(status_code=404, detail="Sprint does not exist")
 
     return crud.update_story_sprint_id(db=db, new_sprint_id=story.sprint_id, story_id=id)
 
-#update only isDone and endDate of story
+
+# update only isDone and endDate of story
 @app.put("/story/{id}/isDone", response_model=schemas.Story, tags=["Stories"])
 async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
 
-    #chceck if story with given id exists
+    # chceck if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    #check that endDate is after startDate
+    # check that endDate is after startDate
     if db_story.startDate > story.endDate:
         raise HTTPException(status_code=400, detail="End date cannot be before start date.")
     
-    #prevent changing aynthing else
+    # prevent changing aynthing else
     story.sprint_id = None
     story.projectId = None
     story.name = None
@@ -390,7 +395,8 @@ async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session =
 
     return crud.update_story_isDone(db=db, story=story, story_id=id)
 
-#delete story
+
+# delete story
 @app.delete("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def delete_story(id: int, db: Session = Depends(get_db)):
     db_story = crud.get_story_by_id(db, story_id=id)
