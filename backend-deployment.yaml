@@ -15,6 +15,7 @@ spec:
       containers:
         - image: amihevc/smrpo-backend
           name: smrpo-backend
+          imagePullPolicy: Always
           env:
             - name: POSTGRES_USER
               valueFrom:
