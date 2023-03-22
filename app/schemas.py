@@ -99,22 +99,26 @@ class ChangePasswordData(BaseModel):
 
 # ============================= SHEMA ZA ACCEPTENCE TEST =============================
 
+
 class AcceptenceTestBase(BaseModel):
     description: str
+
 
 class AcceptenceTestCreate(AcceptenceTestBase):
     pass
 
+
 class AcceptenceTest(AcceptenceTestBase):
     id: int
     storyId: int
+
     class Config:
         orm_mode = True
 
 
 # ============================= SHEMA ZA STORY =============================
 
-#base class
+# base class
 class StoryBase(BaseModel):
     name: str
     storyDescription: str
@@ -124,18 +128,18 @@ class StoryBase(BaseModel):
     startDate: date
     projectId: int
 
-    
 
-#Create class
+# Create class
 class StoryCreate(StoryBase):
     pass
 
-#končni class
 
+# končni class
 class StoryUpdate(StoryBase):
     endDate: date = None
     sprint_id: int = None
     isDone: bool = False
+
 
 class Story(StoryBase):
     id: int
@@ -146,8 +150,30 @@ class Story(StoryBase):
 
     acceptenceTests: list[AcceptenceTest] = []
 
-    #TODO povezava z nalogami
-    #subtasks: List["Task"] = []
+    # TODO povezava z nalogami
+    # subtasks: List["Task"] = []
     class Config:
         orm_mode = True
 
+
+class Task(BaseModel):
+    id: int
+    name: str
+    description: str
+    timeEstimate: int
+    assignee: str
+    assignee_confirmed: bool
+    storyId: int
+
+    class Config:
+        orm_mode = True
+
+
+class TaskInput(BaseModel):
+    name: str
+    description: str
+    timeEstimate: int
+    assignee: str
+
+    class Config:
+        orm_mode = True

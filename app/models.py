@@ -44,35 +44,36 @@ class Sprint(Base):
 
     projectId = Column(Integer, ForeignKey("project.id"))
 
+
 class Story(Base):
     __tablename__ = "story"
 
-    #======================== atributi ========================
-    id = Column(Integer, primary_key=True, index=True) #ID zgodbe
+    # ======================== atributi ========================
+    id = Column(Integer, primary_key=True, index=True)  # ID zgodbe
 
-    name = Column(String)               #ime zgodbe
-    storyDescription = Column(String)   #opis zgodbe
-    priority = Column(String)           #prioriteta zgodbe  #TODO Must have, Should have, Could have, Won't have now
-    businessValue = Column(Integer)     #poslovna vrednost zgodbe
-    timeEstimate = Column(Integer)      #time estimate zgodbe
-    isDone = Column(Boolean)            #ce je koncana nastavi na TRUE
-    startDate = Column(Date, nullable=True) #datum ko je zgodba dodana
-    endDate = Column(Date, nullable=True)   #datum ko je zgodba koncana
+    name = Column(String)               # ime zgodbe
+    storyDescription = Column(String)   # opis zgodbe
+    priority = Column(String)           # prioriteta zgodbe  # TODO Must have, Should have, Could have, Won't have now
+    businessValue = Column(Integer)     # poslovna vrednost zgodbe
+    timeEstimate = Column(Integer)      # time estimate zgodbe
+    isDone = Column(Boolean)            # ce je koncana nastavi na TRUE
+    startDate = Column(Date, nullable=True)  # datum ko je zgodba dodana
+    endDate = Column(Date, nullable=True)   # datum ko je zgodba koncana
 
-    #================= relacije/atrbuti drugje ==================
-    #sprejemni testi
+    # ================= relacije/atrbuti drugje ==================
+    # sprejemni testi
     acceptenceTests = relationship("acceptenceTest", back_populates="story")
 
-    #povezava s projektom
+    # povezava s projektom
     projectId = Column(Integer, ForeignKey('project.id'))
-    #project = relationship("Project", back_populates="zgodbe")
+    # project = relationship("Project", back_populates="zgodbe")
 
-    #TODO povezava s sprintom
+    # TODO povezava s sprintom
     sprint_id = Column(Integer, ForeignKey('sprint.id'))
-    #sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
+    # sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
 
-    #TODO povezava z nalogami
-    #subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v nalogah
+    # TODO povezava z nalogami
+    # subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v nalogah
 
 
 class acceptenceTest(Base):
@@ -82,6 +83,19 @@ class acceptenceTest(Base):
     description = Column(String)
     isDone = Column(Boolean)
 
-    #================= relacije/atrbuti drugje ==================
+    # ================= relacije/atrbuti drugje ==================
     storyId = Column(Integer, ForeignKey('story.id'))
-    story = relationship("Story", back_populates="acceptenceTests")   
+    story = relationship("Story", back_populates="acceptenceTests")
+
+
+class Task(Base):
+    __tablename__ = "task"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    description = Column(String)
+    timeEstimate = Column(Integer)
+    assignee = Column(String)
+    assignee_confirmed = Column(Boolean, default=False)
+
+    storyId = Column(Integer, ForeignKey("story.id"))
