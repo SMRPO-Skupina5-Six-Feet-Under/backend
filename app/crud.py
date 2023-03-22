@@ -162,11 +162,11 @@ def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int)
     return db_new_story
 
 # update only sprint_id
-def update_story_sprint_id(db: Session, story: schemas.StoryUpdate, story_id: int):
+def update_story_sprint_id(db: Session, new_sprint_id: int, story_id: int):
     db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
 
     #posodobi vrednosti če so podane drugače ostanejo stare
-    db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id == None else story.sprint_id
+    db_new_story.sprint_id = db_new_story.sprint_id if new_sprint_id == None else new_sprint_id
 
     db.commit()
     db.refresh(db_new_story)

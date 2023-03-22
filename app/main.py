@@ -256,49 +256,97 @@ async def read_story(id: int, db: Session = Depends(get_db)):
 #create story in project
 @app.post("/story", response_model=schemas.Story, tags=["Stories"])
 async def create_story(story: schemas.StoryCreate, db: Session = Depends(get_db)):
+    #check if story with same name already exists
     db_story = crud.get_story_by_name(db, name=story.name)
     if db_story :
         raise HTTPException(status_code=400, detail="Story already exists")
     
-    #TODO check if project exists
+    #check if project with given id exists
+    db_project = crud.get_project_by_id(db=db, identifier=story.projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
     return crud.create_story(db=db, story=story)
 
 #update story
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+
+    # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    #TODO check that name is not duplicate
-    #TODO check that sprint exists
-    #TODO check that endDate is after startDate
-    #TODO prevent changing projectId
+    # check that name is not duplicate
+    db_story_same_name = crud.get_story_by_name(db, name=story.name)
+    if db_story_same_name != None and db_story_same_name.id != id:
+        raise HTTPException(status_code=400, detail="Story with given name already exists")
+    
+    # check that name is not empty string or "string"
+    if story.name == "" or story.name == "string":
+        story.name = db_story.name
+    
+    # check that description is not empty string or "string"
+    if story.storyDescription == "string":
+        story.storyDescription = db_story.storyDescription
 
+    # check that priority is not "string"
+    if story.priority == "string":
+        story.priority = db_story.priority
+    
+    # check that sprint exists 
+    db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
+    if db_sprint is None:
+        raise HTTPException(status_code=404, detail="Sprint does not exist")
+    
+    # check that endDate is after startDate
+    if db_story.startDate > story.endDate:
+        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
+
+    # prevent changing projectId
+    story.projectId = db_story.projectId
+
+    # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have this time"
+    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't have this time":
+        raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have this time'.")
+    
     return crud.update_story_generic(db=db, story=story, story_id=id)
 
 #update only sprint id of story 
 @app.put("/story/{id}/sprint", response_model=schemas.Story, tags=["Stories"])
-async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depends(get_db)):
+async def update_story_sprint(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+    
+    #check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    #TODO check that sprint exists
-    #TODO prevent changing aynthing else
+    #check that sprint with given id exists
+    db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
+    if db_sprint is None:
+        raise HTTPException(status_code=404, detail="Sprint does not exist")
 
-    return crud.update_story_sprint_id(db=db, story=story, story_id=id)
+    return crud.update_story_sprint_id(db=db, new_sprint_id=story.sprint_id, story_id=id)
 
-#update isDone and endDate of story
+#update only isDone and endDate of story
 @app.put("/story/{id}/isDone", response_model=schemas.Story, tags=["Stories"])
-async def update_story_isDone(id: int, story: schemas.Story, db: Session = Depends(get_db)):
+async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+
+    #chceck if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    #TODO check that endDate is after startDate
-    #TODO prevent changing aynthing else
+    #check that endDate is after startDate
+    if db_story.startDate > story.endDate:
+        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
+    
+    #prevent changing aynthing else
+    story.sprint_id = None
+    story.projectId = None
+    story.name = None
+    story.storyDescription = None
+    story.startDate = None
 
     return crud.update_story_isDone(db=db, story=story, story_id=id)
 
