@@ -110,12 +110,6 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
                 models.ProjectParticipants.userId == userId)\
         .first()
 
-#TODO potrebne operacije za prijavo
-#to dela anze
-
-#TODO potrebne operacije za zgodbe
-#to dela anze
-
 #get zgodba by id 
 def get_story_by_id(db: Session, story_id: int):
     return db.query(models.Story).filter(models.Story.id == story_id).first()
@@ -127,7 +121,6 @@ def get_story_by_name(db: Session, name: str):
 
 #ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    print(story.startDate)
     db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, startDate=story.startDate, projectId=story.projectId, isDone=False)
     db.add(db_story)
     db.commit()
@@ -207,3 +200,13 @@ def delete_story(db: Session, story_id: int):
     db.delete(db_story)
     db.commit()
     return db_story
+
+# create test within a stroy 
+def create_test(db: Session, test: schemas.AcceptenceTestCreate, story_id: int):
+    
+    db_test = models.acceptenceTest(description=test.description, storyId=story_id)
+    db.add(db_test)
+    db.commit()
+    db.refresh(db_test)
+
+    return db_test
