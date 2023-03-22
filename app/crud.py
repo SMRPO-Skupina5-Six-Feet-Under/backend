@@ -109,3 +109,101 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
         .filter(models.ProjectParticipants.projectId == projectId,
                 models.ProjectParticipants.userId == userId)\
         .first()
+
+#TODO potrebne operacije za prijavo
+#to dela anze
+
+#TODO potrebne operacije za zgodbe
+#to dela anze
+
+#get zgodba by id 
+def get_story_by_id(db: Session, story_id: int):
+    return db.query(models.Story).filter(models.Story.id == story_id).first()
+
+#get zgodba by name
+def get_story_by_name(db: Session, name: str):
+    return db.query(models.Story).filter(models.Story.name == name).first()
+
+
+#ustvari novo zgodbo
+def create_story(db: Session, story: schemas.StoryCreate):
+    print(story.startDate)
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, startDate=story.startDate, projectId=story.projectId, isDone=False)
+    db.add(db_story)
+    db.commit()
+    db.refresh(db_story)
+    return db_story
+
+# get za vse zgodbe
+def get_all_stories(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).offset(skip).limit(limit).all()
+
+# get za vse zgodbe v projektu
+def get_all_stories_in_project(db: Session, project_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.projectId == project_id).offset(skip).limit(limit).all()
+
+# get za vse zgodbe v projektu z določeno prioriteto
+def get_all_stories_in_project_with_priority(db: Session, project_id: int, priority: str, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.projectId == project_id).filter(models.Story.priority == priority).offset(skip).limit(limit).all()
+
+# update story 
+def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    #posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.name = db_new_story.name if story.name == None else story.name
+    db_new_story.storyDescription = db_new_story.storyDescription if story.storyDescription == None else story.storyDescription
+    db_new_story.priority = db_new_story.priority if story.priority == None else story.priority
+    db_new_story.businessValue = db_new_story.businessValue if story.businessValue == None else story.businessValue
+    db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate == None else story.timeEstimate
+    db_new_story.endDate = db_new_story.endDate if story.endDate == None else story.endDate
+    db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id == None else story.sprint_id
+
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+# update only sprint_id
+def update_story_sprint_id(db: Session, new_sprint_id: int, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    #posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.sprint_id = db_new_story.sprint_id if new_sprint_id == None else new_sprint_id
+
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+#update isDone and endDate of story
+def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    #posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.isDone = db_new_story.isDone if story.isDone == None else story.isDone
+    db_new_story.endDate = db_new_story.endDate if story.endDate == None else story.endDate
+
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+#update only end date
+def update_story_end_date(db: Session, story: schemas.Story, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    #posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.endDate = db_new_story.endDate if story.endDate == None else story.endDate
+
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+# delete story
+def delete_story(db: Session, story_id: int):
+    db_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+    db.delete(db_story)
+    db.commit()
+    return db_story

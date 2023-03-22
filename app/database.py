@@ -13,8 +13,7 @@ hostname = os.getenv("POSTGRES_HOST", "localhost")
 username = os.getenv("POSTGRES_USER", "dbuser")
 password = os.getenv("POSTGRES_PASSWORD", "postgres")
 database = os.getenv("POSTGRES_DB", "smrpo-db")
-SQLALCHEMY_DATABASE_URL = f"postgresql://{username}:{password}@{hostname}:5432" \
-                          f"/{database}"
+SQLALCHEMY_DATABASE_URL = f"postgresql://{username}:{password}@{hostname}:5432/{database}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL)

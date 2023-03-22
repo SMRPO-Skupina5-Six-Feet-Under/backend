@@ -96,3 +96,39 @@ class LogInData(BaseModel):
 
 class ChangePasswordData(BaseModel):
     newPassword: str
+
+# ============================= SHEMA ZA STORY =============================
+
+#base class
+class StoryBase(BaseModel):
+    name: str
+    storyDescription: str
+    priority: str
+    businessValue: int
+    timeEstimate: int
+    startDate: date
+    projectId: int
+    
+
+#Create class
+class StoryCreate(StoryBase):
+    pass
+
+#končni class
+
+class StoryUpdate(StoryBase):
+    endDate: date = None
+    sprint_id: int = None
+    isDone: bool = False
+
+class Story(StoryBase):
+    id: int
+
+    endDate: date = None
+    sprint_id: int = None
+    isDone: bool = False
+
+    #TODO povezava z nalogami
+    #subtasks: List["Task"] = []
+    class Config:
+        orm_mode = True

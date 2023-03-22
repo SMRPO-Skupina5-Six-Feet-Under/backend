@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, ForeignKey, Float
 from .database import Base
+from sqlalchemy.orm import relationship
 
 
 class User(Base):
@@ -42,3 +43,33 @@ class Sprint(Base):
     velocity = Column(Float)
 
     projectId = Column(Integer, ForeignKey("project.id"))
+
+class Story(Base):
+    __tablename__ = "story"
+
+    #======================== atributi ========================
+    id = Column(Integer, primary_key=True, index=True) #ID zgodbe
+
+    name = Column(String)               #ime zgodbe
+    storyDescription = Column(String)   #opis zgodbe
+    priority = Column(String)           #prioriteta zgodbe  #TODO Must have, Should have, Could have, Won't have now
+    businessValue = Column(Integer)     #poslovna vrednost zgodbe
+    timeEstimate = Column(Integer)      #time estimate zgodbe
+    isDone = Column(Boolean)            #ce je koncana nastavi na TRUE
+    startDate = Column(Date, nullable=True) #datum ko je zgodba dodana
+    endDate = Column(Date, nullable=True)   #datum ko je zgodba koncana
+
+    #================= relacije/atrbuti drugje ==================
+    #povezava s projektom
+    projectId = Column(Integer, ForeignKey('project.id'))
+    #project = relationship("Project", back_populates="zgodbe")
+
+    #TODO povezava s sprintom
+    sprint_id = Column(Integer, ForeignKey('sprint.id'))
+    #sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
+
+
+    #TODO povezava z nalogami
+    #subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v sprintu
+
+    
