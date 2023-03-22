@@ -7,7 +7,7 @@ import psycopg2
 from dotenv import load_dotenv
 
 #nalozi okoljske spremenljivke iz .env datoteke
-load_dotenv()
+load_dotenv() #na k8s mogoce ne rabmo tega ker pobere iz env secrects
 
 hostname = os.getenv("POSTGRES_HOST", "localhost")
 username = os.getenv("POSTGRES_USER", "dbuser")

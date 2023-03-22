@@ -2,3 +2,4 @@ __pycache__
 moje.txt
 .env
 .idea
+k8s/
