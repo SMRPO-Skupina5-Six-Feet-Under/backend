@@ -255,7 +255,23 @@ async def read_story(id: int, db: Session = Depends(get_db)):
 
 #create story in project
 @app.post("/story", response_model=schemas.Story, tags=["Stories"])
-async def create_story(story: schemas.StoryCreate, db: Session = Depends(get_db)):
+async def create_story(story: schemas.StoryCreate, tests: List[schemas.AcceptenceTestCreate] , db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+
+    #check if user is logged in
+    # try:
+    #     Authorize.jwt_required()
+    # except:
+    #     raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
+    # user_name = Authorize.get_jwt_subject()
+    # db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    # db_user_project_role = crud.get_user_role_from_project(db=db, projectId=story.projectId, userId=db_user_data.id)
+    # if not db_user_project_role:
+    #     raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    # if db_user_project_role.roleId != 2:
+    #     raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+
+
     #check if story with same name already exists
     db_story = crud.get_story_by_name(db, name=story.name)
     if db_story :
@@ -266,7 +282,21 @@ async def create_story(story: schemas.StoryCreate, db: Session = Depends(get_db)
     if not db_project:
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
-    return crud.create_story(db=db, story=story)
+    #check if there is any tests
+    if tests is None:
+        raise HTTPException(status_code=400, detail="Acceptence tests cannot be empty.")
+    
+    #create the story
+    new_story = crud.create_story(db=db, story=story)
+
+    #create and add tests to story
+    for test in tests:
+        if test.description is None:
+            raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
+        
+        test = crud.create_test(db=db, test=test, story_id=new_story.id)
+    
+    return new_story
 
 #update story
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])

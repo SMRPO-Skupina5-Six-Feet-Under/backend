@@ -60,6 +60,9 @@ class Story(Base):
     endDate = Column(Date, nullable=True)   #datum ko je zgodba koncana
 
     #================= relacije/atrbuti drugje ==================
+    #sprejemni testi
+    acceptenceTests = relationship("acceptenceTest", back_populates="story")
+
     #povezava s projektom
     projectId = Column(Integer, ForeignKey('project.id'))
     #project = relationship("Project", back_populates="zgodbe")
@@ -68,8 +71,17 @@ class Story(Base):
     sprint_id = Column(Integer, ForeignKey('sprint.id'))
     #sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
 
-
     #TODO povezava z nalogami
-    #subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v sprintu
+    #subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v nalogah
 
-    
+
+class acceptenceTest(Base):
+    __tablename__ = "acceptence_test"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String)
+    isDone = Column(Boolean)
+
+    #================= relacije/atrbuti drugje ==================
+    storyId = Column(Integer, ForeignKey('story.id'))
+    story = relationship("Story", back_populates="acceptenceTests")   

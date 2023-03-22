@@ -97,6 +97,21 @@ class LogInData(BaseModel):
 class ChangePasswordData(BaseModel):
     newPassword: str
 
+# ============================= SHEMA ZA ACCEPTENCE TEST =============================
+
+class AcceptenceTestBase(BaseModel):
+    description: str
+
+class AcceptenceTestCreate(AcceptenceTestBase):
+    pass
+
+class AcceptenceTest(AcceptenceTestBase):
+    id: int
+    storyId: int
+    class Config:
+        orm_mode = True
+
+
 # ============================= SHEMA ZA STORY =============================
 
 #base class
@@ -108,6 +123,7 @@ class StoryBase(BaseModel):
     timeEstimate: int
     startDate: date
     projectId: int
+
     
 
 #Create class
@@ -128,7 +144,10 @@ class Story(StoryBase):
     sprint_id: int = None
     isDone: bool = False
 
+    acceptenceTests: list[AcceptenceTest] = []
+
     #TODO povezava z nalogami
     #subtasks: List["Task"] = []
     class Config:
         orm_mode = True
+
