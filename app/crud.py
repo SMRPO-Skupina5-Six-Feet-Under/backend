@@ -60,7 +60,7 @@ def get_all_projects(db: Session, skip: int = 0, limit: int = 100):
 
 def create_project(db: Session, project: schemas.ProjectCreate):
     # Add to project table.
-    db_project = models.Project(name=project.name)
+    db_project = models.Project(name=project.name, description=project.description)
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -72,7 +72,7 @@ def create_project(db: Session, project: schemas.ProjectCreate):
         db.commit()
         db.refresh(db_project_participant)
 
-    response_project_data = schemas.Project(name=project.name, id=db_project.id, projectParticipants=project.projectParticipants)
+    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.name, projectParticipants=project.projectParticipants)
 
     return response_project_data
 
@@ -212,12 +212,27 @@ def delete_story(db: Session, story_id: int):
     return db_story
 
 
-# create test within a stroy
+# create test within a story
 def create_test(db: Session, test: schemas.AcceptenceTestCreate, story_id: int):
-
-    db_test = models.acceptenceTest(description=test.description, storyId=story_id)
+    db_test = models.AcceptenceTest(description=test.description, storyId=story_id)
     db.add(db_test)
     db.commit()
     db.refresh(db_test)
 
     return db_test
+
+
+def create_task(db: Session, task: schemas.TaskInput, storyId: int):
+    db_task = models.Task(name=task.name, description=task.description, timeEstimate=task.timeEstimate, assigneeUserId=task.assigneeUserId, storyId=storyId)
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def get_all_story_tasks(db: Session, storyId: int, skip: int = 0, limit: int = 1000):
+    return db.query(models.Task).filter(models.Task.storyId == storyId).offset(skip).limit(limit).all()
+
+
+def get_task_by_id(db: Session, taskId: int):
+    return db.query(models.Task).filter(models.Task.id == taskId).first()
