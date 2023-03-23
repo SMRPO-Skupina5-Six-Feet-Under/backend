@@ -134,7 +134,7 @@ async def list_all_projects(skip: int = 0, limit: int = 100, db: Session = Depen
     response_data: List[schemas.Project] = []
     for project in db_projects:
         db_project_participants = crud.get_project_participants(db=db, projectId=project.id)
-        project_data = schemas.Project(name=project.name, id=project.id, projectParticipants=db_project_participants)
+        project_data = schemas.Project(id=project.id, name=project.name, description=project.description, projectParticipants=db_project_participants)
         response_data.append(project_data)
 
     return response_data
@@ -147,7 +147,7 @@ async def get_project(identifier: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
     db_project_participants = crud.get_project_participants(db=db, projectId=identifier)
-    response_project_data = schemas.Project(name=db_project.name, id=db_project.id, projectParticipants=db_project_participants)
+    response_project_data = schemas.Project(id=db_project.id, name=db_project.name, description=db_project.description, projectParticipants=db_project_participants)
 
     return response_project_data
 
@@ -166,9 +166,10 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
     if not db_user_data.isAdmin:
         raise HTTPException(status_code=400, detail="Currently logged user must have admin rights, in order to perform this action.")
 
-    db_project = crud.get_project_by_name(db=db, name=project.name)
-    if db_project:
-        raise HTTPException(status_code=400, detail="Project with such name already exist.")
+    db_project = crud.get_all_projects(db=db)
+    for current_project in db_project:
+        if current_project.name.lower() == project.name.lower():
+            raise HTTPException(status_code=400, detail="Project with such name already exist.")
 
     check, message = static.check_project_roles(project.projectParticipants, db)
     if not check:

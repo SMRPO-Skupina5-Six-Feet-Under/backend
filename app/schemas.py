@@ -47,8 +47,9 @@ class ProjectParticipants(BaseModel):
 
 
 class Project(BaseModel):
-    name: str
     id: int
+    name: str
+    description: str
     projectParticipants: List[ProjectParticipantsInput]
 
     class Config:
@@ -57,6 +58,7 @@ class Project(BaseModel):
 
 class ProjectCreate(BaseModel):
     name: str
+    description: str
     projectParticipants: List[ProjectParticipantsInput]
 
     class Config:

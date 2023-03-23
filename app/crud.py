@@ -60,7 +60,7 @@ def get_all_projects(db: Session, skip: int = 0, limit: int = 100):
 
 def create_project(db: Session, project: schemas.ProjectCreate):
     # Add to project table.
-    db_project = models.Project(name=project.name)
+    db_project = models.Project(name=project.name, description=project.description)
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -72,7 +72,7 @@ def create_project(db: Session, project: schemas.ProjectCreate):
         db.commit()
         db.refresh(db_project_participant)
 
-    response_project_data = schemas.Project(name=project.name, id=db_project.id, projectParticipants=project.projectParticipants)
+    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.name, projectParticipants=project.projectParticipants)
 
     return response_project_data
 
