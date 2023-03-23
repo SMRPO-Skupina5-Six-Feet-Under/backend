@@ -95,7 +95,9 @@ class Task(Base):
     name = Column(String)
     description = Column(String)
     timeEstimate = Column(Integer)
-    assignee = Column(String)
+    assigneeUserId = Column(Integer, nullable=True)
     assignee_confirmed = Column(Boolean, default=False)
+    active = Column(Boolean, default=False)
+    finished = Column(Boolean, default=False)
 
     storyId = Column(Integer, ForeignKey("story.id"))

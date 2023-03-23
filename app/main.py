@@ -246,6 +246,7 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
     for current_sprint in all_sprints:
         if sprint.startDate <= current_sprint.startDate <= sprint.endDate or sprint.startDate <= current_sprint.endDate <= sprint.endDate:
             raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
+
     return crud.create_sprint(db=db, sprint=sprint, projectId=projectId)
 
 
@@ -404,3 +405,42 @@ async def delete_story(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Story does not exist")
     
     return crud.delete_story(db=db, story_id=id)
+
+
+@app.get("/task/{storyId}/all", response_model=List[schemas.Task], tags=["Tasks"])
+async def list_all_story_tasks(storyId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    db_story = crud.get_story_by_id(db=db, story_id=storyId)
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with given identifier does not exist.")
+    return crud.get_all_story_tasks(db, storyId=storyId, skip=skip, limit=limit)
+
+
+@app.get("/task/{taskId}", response_model=schemas.Task, tags=["Tasks"])
+async def get_task(taskId: int, db: Session = Depends(get_db)):
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+    return db_task
+
+
+@app.post("/task/{storyId}", response_model=schemas.Task, tags=["Tasks"])
+async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Mandatory fields should be checked by frontend (check if mandatory ones are fulfilled).
+
+    """
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    """
+
+    db_story_tasks = crud.get_all_story_tasks(db=db, storyId=storyId)
+    if not db_story_tasks:
+        raise HTTPException(status_code=400, detail="Story with given identifier does not exist.")
+
+    return crud.create_task(db=db, task=task, storyId=storyId)
+
+# ZA ZRIHTAT:
+# preveri default string size python-baza zaradi description polja (popravi drugod, da ne bo samo 256)
+# - datum pri sprintih (da ni pred earliest-om)
+# - sprint velocity na 20

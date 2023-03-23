@@ -161,8 +161,10 @@ class Task(BaseModel):
     name: str
     description: str
     timeEstimate: int
-    assignee: str
-    assignee_confirmed: bool
+    assigneeUserId: int = None
+    assignee_confirmed: bool = False
+    active: bool = False
+    finished: bool = False
     storyId: int
 
     class Config:
@@ -173,7 +175,7 @@ class TaskInput(BaseModel):
     name: str
     description: str
     timeEstimate: int
-    assignee: str
+    assigneeUserId: Optional[int] = None
 
     class Config:
         orm_mode = True
