@@ -462,6 +462,3 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
         raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
 
     return crud.create_task(db=db, task=task, storyId=storyId)
-
-# ZA ZRIHTAT:
-# - datum pri sprintih (da ni pred earliest-om)
