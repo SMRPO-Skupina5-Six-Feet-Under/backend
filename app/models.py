@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, ForeignKey, Float
+from sqlalchemy import Column, Integer, Boolean, DateTime, Date, ForeignKey, Float, String
 from .database import Base
 from sqlalchemy.orm import relationship
 
@@ -62,7 +62,7 @@ class Story(Base):
 
     # ================= relacije/atrbuti drugje ==================
     # sprejemni testi
-    acceptenceTests = relationship("acceptenceTest", back_populates="story")
+    acceptenceTests = relationship("AcceptenceTest", back_populates="story")
 
     # povezava s projektom
     projectId = Column(Integer, ForeignKey('project.id'))
@@ -76,7 +76,7 @@ class Story(Base):
     # subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v nalogah
 
 
-class acceptenceTest(Base):
+class AcceptenceTest(Base):
     __tablename__ = "acceptence_test"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -96,8 +96,8 @@ class Task(Base):
     description = Column(String)
     timeEstimate = Column(Integer)
     assigneeUserId = Column(Integer, nullable=True)
-    assignee_confirmed = Column(Boolean, default=False)
-    active = Column(Boolean, default=False)
-    finished = Column(Boolean, default=False)
+    hasAssigneeConfirmed = Column(Boolean, default=False)
+    isActive = Column(Boolean, default=False)
+    isDone = Column(Boolean, default=False)
 
     storyId = Column(Integer, ForeignKey("story.id"))

@@ -214,7 +214,7 @@ def delete_story(db: Session, story_id: int):
 
 # create test within a story
 def create_test(db: Session, test: schemas.AcceptenceTestCreate, story_id: int):
-    db_test = models.acceptenceTest(description=test.description, storyId=story_id)
+    db_test = models.AcceptenceTest(description=test.description, storyId=story_id)
     db.add(db_test)
     db.commit()
     db.refresh(db_test)

@@ -97,8 +97,6 @@ class LogInData(BaseModel):
 class ChangePasswordData(BaseModel):
     newPassword: str
 
-# ============================= SHEMA ZA ACCEPTENCE TEST =============================
-
 
 class AcceptenceTestBase(BaseModel):
     description: str
@@ -116,9 +114,6 @@ class AcceptenceTest(AcceptenceTestBase):
         orm_mode = True
 
 
-# ============================= SHEMA ZA STORY =============================
-
-# base class
 class StoryBase(BaseModel):
     name: str
     storyDescription: str
@@ -129,12 +124,10 @@ class StoryBase(BaseModel):
     projectId: int
 
 
-# Create class
 class StoryCreate(StoryBase):
     pass
 
 
-# končni class
 class StoryUpdate(StoryBase):
     endDate: date = None
     sprint_id: int = None
@@ -162,9 +155,9 @@ class Task(BaseModel):
     description: str
     timeEstimate: int
     assigneeUserId: int = None
-    assignee_confirmed: bool = False
-    active: bool = False
-    finished: bool = False
+    hasAssigneeConfirmed: bool = False
+    isActive: bool = False
+    isFinished: bool = False
     storyId: int
 
     class Config:
