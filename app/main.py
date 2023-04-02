@@ -276,12 +276,20 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     except:
         raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
     
+    # check if user is part of the project
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
-    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=story.projectId, userId=db_user_data.id)
-    if not db_user_project_role:
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=story.projectId, userId=db_user_data.id)
+    if not db_user_project_roles:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
-    if db_user_project_role.roleId == 3:
+    
+    # check if user is product owner or scrum master
+    for db_user_project_role in db_user_project_roles:
+        if db_user_project_role.roleId == 1 or db_user_project_role.roleId == 2:
+            is_user_project_owner_or_scrum_master = True
+            break
+    
+    if not is_user_project_owner_or_scrum_master:
         raise HTTPException(status_code=400, detail="Currently logged user must be product owner or scrum master at this project, in order to perform this action.")
 
     # check if story with same name already exists
@@ -310,7 +318,7 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     
     return new_story
 
-
+# update story
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
     # check if story with given id exists
@@ -319,6 +327,7 @@ async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depend
         raise HTTPException(status_code=404, detail="Story does not exist")
     
     # check that name is not duplicate
+    #TODO check for capital letters and spaces
     db_story_same_name = crud.get_story_by_name(db, name=story.name)
     if db_story_same_name is not None and db_story_same_name.id != id:
         raise HTTPException(status_code=400, detail="Story with given name already exists")
@@ -340,9 +349,6 @@ async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depend
     if db_sprint is None:
         raise HTTPException(status_code=404, detail="Sprint does not exist")
     
-    # check that endDate is after startDate
-    if db_story.startDate > story.endDate:
-        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
 
     # prevent changing projectId
     story.projectId = db_story.projectId
@@ -378,16 +384,12 @@ async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session =
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    # check that endDate is after startDate
-    if db_story.startDate > story.endDate:
-        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
-    
+   
     # prevent changing anything else
     story.sprint_id = None
     story.projectId = None
     story.name = None
     story.storyDescription = None
-    story.startDate = None
 
     return crud.update_story_isDone(db=db, story=story, story_id=id)
 
