@@ -110,6 +110,11 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
                 models.ProjectParticipants.userId == userId)\
         .first()
 
+def get_all_user_roles(db: Session, projectId: int, userId: int):
+    return db.query(models.ProjectParticipants)\
+        .filter(models.ProjectParticipants.projectId == projectId, 
+                models.ProjectParticipants.userId == userId)\
+        .all()
 
 # get zgodba by id
 def get_story_by_id(db: Session, story_id: int):
@@ -123,7 +128,7 @@ def get_story_by_name(db: Session, name: str):
 
 # ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, startDate=story.startDate, projectId=story.projectId, isDone=False)
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, projectId=story.projectId, isDone=False)
     db.add(db_story)
     db.commit()
     db.refresh(db_story)
@@ -155,7 +160,6 @@ def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int)
     db_new_story.priority = db_new_story.priority if story.priority is None else story.priority
     db_new_story.businessValue = db_new_story.businessValue if story.businessValue is None else story.businessValue
     db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
-    db_new_story.endDate = db_new_story.endDate if story.endDate is None else story.endDate
     db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id is None else story.sprint_id
 
     db.commit()
@@ -177,31 +181,18 @@ def update_story_sprint_id(db: Session, new_sprint_id: int, story_id: int):
     return db_new_story
 
 
-# update isDone and endDate of story
+# update isDone
 def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
     db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
 
     # posodobi vrednosti če so podane drugače ostanejo stare
     db_new_story.isDone = db_new_story.isDone if story.isDone is None else story.isDone
-    db_new_story.endDate = db_new_story.endDate if story.endDate is None else story.endDate
 
     db.commit()
     db.refresh(db_new_story)
 
     return db_new_story
 
-
-# update only end date
-def update_story_end_date(db: Session, story: schemas.Story, story_id: int):
-    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
-
-    # posodobi vrednosti če so podane drugače ostanejo stare
-    db_new_story.endDate = db_new_story.endDate if story.endDate == None else story.endDate
-
-    db.commit()
-    db.refresh(db_new_story)
-
-    return db_new_story
 
 
 # delete story

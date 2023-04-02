@@ -122,7 +122,7 @@ class StoryBase(BaseModel):
     priority: str
     businessValue: int
     timeEstimate: int
-    startDate: date
+
     projectId: int
 
 
@@ -131,7 +131,6 @@ class StoryCreate(StoryBase):
 
 
 class StoryUpdate(StoryBase):
-    endDate: date = None
     sprint_id: int = None
     isDone: bool = False
 
@@ -139,7 +138,6 @@ class StoryUpdate(StoryBase):
 class Story(StoryBase):
     id: int
 
-    endDate: date = None
     sprint_id: int = None
     isDone: bool = False
 

@@ -58,9 +58,7 @@ class Story(Base):
     businessValue = Column(Integer)     # poslovna vrednost zgodbe
     timeEstimate = Column(Integer)      # time estimate zgodbe
     isDone = Column(Boolean)            # ce je koncana nastavi na TRUE
-    startDate = Column(Date, nullable=True)  # datum ko je zgodba dodana
-    endDate = Column(Date, nullable=True)   # datum ko je zgodba koncana
-
+    
     # ================= relacije/atrbuti drugje ==================
     # sprejemni testi
     acceptenceTests = relationship("AcceptenceTest", back_populates="story")
