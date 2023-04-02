@@ -1,5 +1,5 @@
 __pycache__
 moje.txt
-.env
+*.env
 .idea
 k8s/
