@@ -194,6 +194,41 @@ async def get_project_roles() -> list[schemas.ProjectRole]:
     ]
 
 
+@app.patch("/project/{identifier}/data", response_model=schemas.Project, tags=["Projects"])
+async def update_project_data(identifier: int, project: schemas.ProjectDataPatch, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_project = crud.get_project_by_id(db=db, identifier=identifier)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=identifier, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project or is not system administrator.")
+
+    if db_user_project_role.roleId != 2 or not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+
+    if project.name is not None:
+        db_project = crud.get_all_projects(db=db)
+        for current_project in db_project:
+            if current_project.name.lower() == project.name.lower():
+                raise HTTPException(status_code=400, detail="Project with such name already exist.")
+
+    return crud.update_project_data(db=db, project=project, identifier=identifier)
+
+
+@app.put("/project/{identifier}/participants", response_model=schemas.Project, tags=["Projects"])
+async def update_project_data(identifier: int, story: schemas.ProjectParticipantsInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    return 5
+
+
 @app.get("/sprint/{projectId}/all", response_model=List[schemas.Sprint], tags=["Sprints"])
 async def list_all_sprints(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     db_project = crud.get_project_by_id(db=db, identifier=projectId)
@@ -318,7 +353,7 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     
     return new_story
 
-# update story
+
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
     # check if story with given id exists
@@ -348,7 +383,6 @@ async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depend
     db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
     if db_sprint is None:
         raise HTTPException(status_code=404, detail="Sprint does not exist")
-    
 
     # prevent changing projectId
     story.projectId = db_story.projectId
@@ -383,7 +417,6 @@ async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session =
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
-    
    
     # prevent changing anything else
     story.sprint_id = None

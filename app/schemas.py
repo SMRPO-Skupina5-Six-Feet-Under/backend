@@ -65,6 +65,14 @@ class ProjectCreate(BaseModel):
         orm_mode = True
 
 
+class ProjectDataPatch(BaseModel):
+    name: str
+    description: str
+
+    class Config:
+        orm_mode = True
+
+
 class Sprint(BaseModel):
     id: int
     startDate: date

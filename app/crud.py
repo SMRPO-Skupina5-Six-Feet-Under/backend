@@ -88,6 +88,18 @@ def get_project_participants(db: Session, projectId: int):
     return db.query(models.ProjectParticipants).filter(models.ProjectParticipants.projectId == projectId).all()
 
 
+def update_project_data(db: Session, project: schemas.ProjectDataPatch, identifier: int):
+    db_project = db.query(models.Project).filter(models.Project.id == identifier).first()
+
+    db_project.name = db_project.name if project.name is None else project.name
+    db_project.description = db_project.description if project.description is None else project.description
+
+    db.commit()
+    db.refresh(db_project)
+
+    return db_project
+
+
 def get_all_sprints(db: Session, projectId: int, skip: int = 0, limit: int = 1000):
     return db.query(models.Sprint).filter(models.Sprint.projectId == projectId).offset(skip).limit(limit).all()
 
@@ -110,11 +122,13 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
                 models.ProjectParticipants.userId == userId)\
         .first()
 
+
 def get_all_user_roles(db: Session, projectId: int, userId: int):
     return db.query(models.ProjectParticipants)\
         .filter(models.ProjectParticipants.projectId == projectId, 
                 models.ProjectParticipants.userId == userId)\
         .all()
+
 
 # get zgodba by id
 def get_story_by_id(db: Session, story_id: int):
@@ -192,7 +206,6 @@ def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
     db.refresh(db_new_story)
 
     return db_new_story
-
 
 
 # delete story
