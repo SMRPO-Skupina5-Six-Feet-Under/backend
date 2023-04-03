@@ -271,8 +271,8 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
     if sprint.velocity <= 0:
         raise HTTPException(status_code=400, detail="Sprint velocity cannot be less or equal to zero.")
 
-    if sprint.velocity > 20:
-        raise HTTPException(status_code=400, detail="Sprint velocity exceeds reasonable range.")
+    #if sprint.velocity > 20:
+    #   raise HTTPException(status_code=400, detail="Sprint velocity exceeds reasonable range.")
 
     current_date = datetime.date.today()
     if sprint.startDate.date() < current_date:
