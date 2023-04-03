@@ -30,6 +30,7 @@ class ProjectParticipants(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     roleId = Column(Integer)
+    isActive = Column(Boolean, default=True)
 
     projectId = Column(Integer, ForeignKey("project.id"))
     userId = Column(Integer, ForeignKey("user.id"))
