@@ -102,6 +102,15 @@ class SprintCreate(BaseModel):
         orm_mode = True
 
 
+class SprintPatch(BaseModel):
+    startDate: Optional[datetime]
+    endDate: Optional[datetime]
+    velocity: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+
 class ProjectRole(BaseModel):
     id: int
     role: str

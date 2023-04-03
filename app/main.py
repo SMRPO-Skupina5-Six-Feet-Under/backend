@@ -197,6 +197,8 @@ async def get_project_roles() -> list[schemas.ProjectRole]:
 
 @app.patch("/project/{identifier}/data", response_model=schemas.ProjectDataPatchResponse, tags=["Projects"])
 async def update_project_data(identifier: int, project: schemas.ProjectDataPatch, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Both fields are optional.
+
     try:
         Authorize.jwt_required()
     except:
@@ -267,9 +269,6 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
     if sprint.velocity <= 0:
         raise HTTPException(status_code=400, detail="Sprint velocity cannot be less or equal to zero.")
 
-    if sprint.velocity > 20:
-        raise HTTPException(status_code=400, detail="Sprint velocity exceeds reasonable range.")
-
     current_date = datetime.date.today()
     if sprint.startDate.date() < current_date:
         raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
@@ -279,10 +278,95 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
 
     all_sprints = crud.get_all_sprints(db, projectId=projectId)
     for current_sprint in all_sprints:
-        if sprint.startDate.date() <= current_sprint.start.date() <= sprint.endDate.date() or sprint.startDate.date() <= current_sprint.endDate.date() <= sprint.endDate.date():
+        if sprint.startDate.date() <= current_sprint.startDate.date() <= sprint.endDate.date() or sprint.startDate.date() <= current_sprint.endDate.date() <= sprint.endDate.date():
             raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
 
     return crud.create_sprint(db=db, sprint=sprint, projectId=projectId)
+
+
+@app.delete("/sprint/{sprintId}", response_model=schemas.Sprint, tags=["Sprints"])
+async def delete_sprint(sprintId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Scrum master can delete sprints that haven't started yet.
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_sprint = crud.get_sprint_by_id(db=db, sprintId=sprintId)
+    if not db_sprint:
+        raise HTTPException(status_code=400, detail="Sprint with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_sprint.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId != 2:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+
+    current_date = datetime.date.today()
+    if db_sprint.startDate.date() <= current_date:
+        raise HTTPException(status_code=400, detail="Only sprint that hasn't started yet or is not currently active can be deleted.")
+
+    return crud.delete_sprint(db=db, sprintId=sprintId)
+
+
+@app.patch("/sprint/{sprintId}", response_model=schemas.Sprint, tags=["Sprints"])
+async def update_sprint(sprintId: int, sprint: schemas.SprintPatch, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # All 3 fields are optional. All required validations (stated below) are applied within endpoint's logic.
+    # Scrum master can edit all 3 fields at sprints that haven't started yet.
+    # Scrum master can edit only sprint velocity field at sprint that is currently active.
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_sprint = crud.get_sprint_by_id(db=db, sprintId=sprintId)
+    if not db_sprint:
+        raise HTTPException(status_code=400, detail="Sprint with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_sprint.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId != 2:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+
+    current_date = datetime.date.today()
+
+    if db_sprint.startDate.date() < current_date:
+        raise HTTPException(status_code=400, detail="Sprints that are already finished cannot be edited.")
+
+    if db_sprint.startDate.date() <= current_date <= db_sprint.endDate.date() and (sprint.startDate is not None or sprint.endDate is not None):
+        raise HTTPException(status_code=400, detail="Start and end dates cannot be edited for currently active sprint. They can be edited for sprints that haven't started yet.")
+
+    if sprint.velocity is not None:
+        if sprint.velocity <= 0:
+            raise HTTPException(status_code=400, detail="Sprint velocity cannot be less or equal to zero.")
+
+    new_start_date = sprint.startDate.date() if sprint.startDate is not None else db_sprint.startDate.date()
+    new_end_date = sprint.endDate.date() if sprint.endDate is not None else db_sprint.endDate.date()
+
+    if new_start_date < current_date:
+        raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
+
+    if new_end_date <= new_start_date:
+        raise HTTPException(status_code=400, detail="Sprint end date cannot be earlier or equal to its start date.")
+
+    all_sprints = crud.get_all_sprints(db, projectId=db_sprint.projectId)
+    for current_sprint in all_sprints:
+        if current_sprint.id != db_sprint.id:
+            if new_start_date <= current_sprint.startDate.date() <= new_end_date or new_start_date <= current_sprint.endDate.date() <= new_end_date:
+                raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
+
+    return crud.update_sprint(db=db, sprint=sprint, db_sprint=db_sprint)
 
 
 @app.get("/stories/{project_id}", response_model=List[schemas.Story], tags=["Stories"])
