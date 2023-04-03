@@ -66,6 +66,15 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectDataPatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectDataPatchResponse(BaseModel):
+    id: int
     name: str
     description: str
 
@@ -88,6 +97,15 @@ class SprintCreate(BaseModel):
     startDate: datetime
     endDate: datetime
     velocity: float
+
+    class Config:
+        orm_mode = True
+
+
+class SprintPatch(BaseModel):
+    startDate: Optional[datetime]
+    endDate: Optional[datetime]
+    velocity: Optional[float]
 
     class Config:
         orm_mode = True

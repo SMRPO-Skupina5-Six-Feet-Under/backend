@@ -72,7 +72,7 @@ def create_project(db: Session, project: schemas.ProjectCreate):
         db.commit()
         db.refresh(db_project_participant)
 
-    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.name, projectParticipants=project.projectParticipants)
+    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.description, projectParticipants=project.projectParticipants)
 
     return response_project_data
 
@@ -97,11 +97,13 @@ def update_project_data(db: Session, project: schemas.ProjectDataPatch, identifi
     db.commit()
     db.refresh(db_project)
 
-    return db_project
+    response_project_data = schemas.ProjectDataPatchResponse(id=db_project.id, name=db_project.name, description=db_project.description)
+
+    return response_project_data
 
 
 def get_all_sprints(db: Session, projectId: int, skip: int = 0, limit: int = 1000):
-    return db.query(models.Sprint).filter(models.Sprint.projectId == projectId).offset(skip).limit(limit).all()
+    return db.query(models.Sprint).filter(models.Sprint.projectId == projectId).order_by(models.Sprint.startDate).offset(skip).limit(limit).all()
 
 
 def get_sprint_by_id(db: Session, sprintId: int):
@@ -111,6 +113,22 @@ def get_sprint_by_id(db: Session, sprintId: int):
 def create_sprint(db: Session, sprint: schemas.SprintCreate, projectId: int):
     db_sprint = models.Sprint(startDate=sprint.startDate, endDate=sprint.endDate, velocity=sprint.velocity, projectId=projectId)
     db.add(db_sprint)
+    db.commit()
+    db.refresh(db_sprint)
+    return db_sprint
+
+
+def delete_sprint(db: Session, sprintId: int):
+    db_sprint = db.query(models.Sprint).filter(models.Sprint.id == sprintId).first()
+    db.delete(db_sprint)
+    db.commit()
+    return db_sprint
+
+
+def update_sprint(db: Session, sprint: schemas.SprintPatch, db_sprint: schemas.Sprint):
+    db_sprint.startDate = db_sprint.startDate if sprint.startDate is None else sprint.startDate
+    db_sprint.endDate = db_sprint.endDate if sprint.endDate is None else sprint.endDate
+    db_sprint.velocity = db_sprint.velocity if sprint.velocity is None else sprint.velocity
     db.commit()
     db.refresh(db_sprint)
     return db_sprint
