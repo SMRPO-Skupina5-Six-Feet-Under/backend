@@ -275,15 +275,15 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
         raise HTTPException(status_code=400, detail="Sprint velocity exceeds reasonable range.")
 
     current_date = datetime.date.today()
-    if sprint.startDate < current_date:
+    if sprint.startDate.date() < current_date:
         raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
 
-    if sprint.endDate <= sprint.startDate:
+    if sprint.endDate.date() <= sprint.startDate.date():
         raise HTTPException(status_code=400, detail="Sprint end date cannot be earlier or equal to its start date.")
 
     all_sprints = crud.get_all_sprints(db, projectId=projectId)
     for current_sprint in all_sprints:
-        if sprint.startDate <= current_sprint.startDate <= sprint.endDate or sprint.startDate <= current_sprint.endDate <= sprint.endDate:
+        if sprint.startDate.date() <= current_sprint.start.date() <= sprint.endDate.date() or sprint.startDate.date() <= current_sprint.endDate.date() <= sprint.endDate.date():
             raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
 
     return crud.create_sprint(db=db, sprint=sprint, projectId=projectId)
@@ -482,7 +482,7 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
         raise HTTPException(status_code=400, detail="Cannot add new task under story that isn't connected to any sprint.")
 
     current_date = datetime.date.today()
-    if not db_sprint.startDate <= current_date <= db_sprint.endDate:
+    if not db_sprint.startDate.date() <= current_date <= db_sprint.endDate.date():
         raise HTTPException(status_code=400, detail="Cannot add new task under story of currently not active sprint.")
 
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=storyId)
