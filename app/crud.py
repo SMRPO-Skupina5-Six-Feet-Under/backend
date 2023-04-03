@@ -72,7 +72,7 @@ def create_project(db: Session, project: schemas.ProjectCreate):
         db.commit()
         db.refresh(db_project_participant)
 
-    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.name, projectParticipants=project.projectParticipants)
+    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.description, projectParticipants=project.projectParticipants)
 
     return response_project_data
 
@@ -97,7 +97,9 @@ def update_project_data(db: Session, project: schemas.ProjectDataPatch, identifi
     db.commit()
     db.refresh(db_project)
 
-    return db_project
+    response_project_data = schemas.ProjectDataPatchResponse(id=db_project.id, name=db_project.name, description=db_project.description)
+
+    return response_project_data
 
 
 def get_all_sprints(db: Session, projectId: int, skip: int = 0, limit: int = 1000):

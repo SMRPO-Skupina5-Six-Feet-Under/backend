@@ -182,6 +182,7 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
 async def delete_project(identifier: int, db: Session = Depends(get_db)):
     # We assume that frontend always serves only projects that actually exist.
     # Therefore, there is no need for additional check for project existence on backend.
+    # TODO: This does not work properly yet!
     return crud.delete_project(db=db, identifier=identifier)
 
 
@@ -194,7 +195,7 @@ async def get_project_roles() -> list[schemas.ProjectRole]:
     ]
 
 
-@app.patch("/project/{identifier}/data", response_model=schemas.Project, tags=["Projects"])
+@app.patch("/project/{identifier}/data", response_model=schemas.ProjectDataPatchResponse, tags=["Projects"])
 async def update_project_data(identifier: int, project: schemas.ProjectDataPatch, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()

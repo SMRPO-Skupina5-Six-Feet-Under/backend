@@ -66,6 +66,15 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectDataPatch(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectDataPatchResponse(BaseModel):
+    id: int
     name: str
     description: str
 
