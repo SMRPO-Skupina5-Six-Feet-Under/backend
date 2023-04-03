@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime, date
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -75,8 +75,8 @@ class ProjectDataPatch(BaseModel):
 
 class Sprint(BaseModel):
     id: int
-    startDate: date
-    endDate: date
+    startDate: datetime
+    endDate: datetime
     velocity: float
     projectId: int
 
@@ -85,8 +85,8 @@ class Sprint(BaseModel):
 
 
 class SprintCreate(BaseModel):
-    startDate: date
-    endDate: date
+    startDate: datetime
+    endDate: datetime
     velocity: float
 
     class Config:

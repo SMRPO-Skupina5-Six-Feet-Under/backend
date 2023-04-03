@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Boolean, DateTime, Date, ForeignKey, Float, String
+from sqlalchemy import Column, Integer, Boolean, DateTime, ForeignKey, Float, String
 from .database import Base
 from sqlalchemy.orm import relationship
 
@@ -39,8 +39,8 @@ class Sprint(Base):
     __tablename__ = "sprint"
 
     id = Column(Integer, primary_key=True, index=True)
-    startDate = Column(Date, nullable=True)
-    endDate = Column(Date, nullable=True)
+    startDate = Column(DateTime, nullable=True)
+    endDate = Column(DateTime, nullable=True)
     velocity = Column(Float)
 
     projectId = Column(Integer, ForeignKey("project.id"))
