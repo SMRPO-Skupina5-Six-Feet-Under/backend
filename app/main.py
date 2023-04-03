@@ -211,10 +211,10 @@ async def update_project_data(identifier: int, project: schemas.ProjectDataPatch
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=identifier, userId=db_user_data.id)
 
     if not db_user_project_role:
-        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project or is not system administrator.")
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
 
-    if db_user_project_role.roleId != 2 or not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+    if db_user_project_role.roleId != 2 and not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project or system administrator, in order to perform this action.")
 
     if project.name is not None:
         db_project = crud.get_all_projects(db=db)
@@ -223,11 +223,6 @@ async def update_project_data(identifier: int, project: schemas.ProjectDataPatch
                 raise HTTPException(status_code=400, detail="Project with such name already exist.")
 
     return crud.update_project_data(db=db, project=project, identifier=identifier)
-
-
-@app.put("/project/{identifier}/participants", response_model=schemas.Project, tags=["Projects"])
-async def update_project_data(identifier: int, story: schemas.ProjectParticipantsInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    return 5
 
 
 @app.get("/sprint/{projectId}/all", response_model=List[schemas.Sprint], tags=["Sprints"])
