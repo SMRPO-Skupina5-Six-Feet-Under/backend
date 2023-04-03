@@ -283,7 +283,7 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
 
     all_sprints = crud.get_all_sprints(db, projectId=projectId)
     for current_sprint in all_sprints:
-        if sprint.startDate.date() <= current_sprint.start.date() <= sprint.endDate.date() or sprint.startDate.date() <= current_sprint.endDate.date() <= sprint.endDate.date():
+        if sprint.startDate.date() <= current_sprint.startDate.date() <= sprint.endDate.date() or sprint.startDate.date() <= current_sprint.endDate.date() <= sprint.endDate.date():
             raise HTTPException(status_code=400, detail="Given sprint dates overlap with dates of an already existing sprint.")
 
     return crud.create_sprint(db=db, sprint=sprint, projectId=projectId)
