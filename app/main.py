@@ -164,7 +164,7 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     if not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user must have admin rights, in order to perform this action.")
+        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
 
     db_project = crud.get_all_projects(db=db)
     for current_project in db_project:
@@ -182,7 +182,7 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
 async def delete_project(identifier: int, db: Session = Depends(get_db)):
     # We assume that frontend always serves only projects that actually exist.
     # Therefore, there is no need for additional check for project existence on backend.
-    # TODO: This does not work properly yet!
+    # TODO: This does not work properly yet! Maybe it won't be even needed (question to product owner).
     return crud.delete_project(db=db, identifier=identifier)
 
 
@@ -225,6 +225,36 @@ async def update_project_data(identifier: int, project: schemas.ProjectDataPatch
                 raise HTTPException(status_code=400, detail="Project with such name already exist.")
 
     return crud.update_project_data(db=db, project=project, identifier=identifier)
+
+
+@app.put("/project/{identifier}/participants", response_model=List[schemas.ProjectParticipantsInput], tags=["Projects"])
+async def update_project_participants(identifier: int, participants: List[schemas.ProjectParticipantsInput], db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_project = crud.get_project_by_id(db=db, identifier=identifier)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=identifier, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId != 2 and not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project or system administrator, in order to perform this action.")
+
+    # Validate new list of all participants.
+    check, message = static.check_project_roles(participants, db)
+    if not check:
+        raise HTTPException(status_code=400, detail=message)
+
+    # Compare and change participants (remove, add, change role).
+    return crud.update_project_participants(db=db, projectId=identifier, new_participants=participants)
 
 
 @app.get("/sprint/{projectId}/all", response_model=List[schemas.Sprint], tags=["Sprints"])
@@ -399,6 +429,7 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
     
     # check if user is product owner or scrum master
+    is_user_project_owner_or_scrum_master = False
     for db_user_project_role in db_user_project_roles:
         if db_user_project_role.roleId == 1 or db_user_project_role.roleId == 2:
             is_user_project_owner_or_scrum_master = True

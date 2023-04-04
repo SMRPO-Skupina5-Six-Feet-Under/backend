@@ -1,4 +1,5 @@
 import datetime
+from typing import List
 from sqlalchemy.orm import Session
 from app import models, schemas
 
@@ -77,6 +78,66 @@ def create_project(db: Session, project: schemas.ProjectCreate):
     return response_project_data
 
 
+def update_project_participants(db: Session, projectId: int, new_participants: List[schemas.ProjectParticipantsInput]):
+    # Get current participants situation from DB.
+    db_old_participants = get_project_participants(db=db, projectId=projectId)
+
+    # List, where all userId's are stored, for the purposes of recognizing user with double role.
+    # Scrum master and developer.
+    double_role = []
+    for participant in new_participants:
+        double_role.append(participant.userId)
+    unique_values = set(double_role)
+    array_sum = sum(double_role)
+    unique_sum = sum(unique_values)
+    double_role_user_id = array_sum - unique_sum
+    double_user_noticed = 0  # Flag for marking, whether scrum master role has been noticed.
+
+    for new_participant in new_participants:
+        update_performed = False  # Flag for marking, whether the UPDATE action has been performed for participant.
+        for old_participant in db_old_participants:
+            if new_participant.userId == old_participant.userId:
+                if update_performed:
+                    # Delete (get rid of duplicates because of old entries).
+                    db_participant = db.query(models.ProjectParticipants).filter(models.ProjectParticipants.id == old_participant.id).first()
+                    db.delete(db_participant)
+                    db.commit()
+                else:
+                    # Handle double role (scrum master and developer) for the same user.
+                    if double_user_noticed == 1:
+                        double_user_noticed += 1
+                    else:
+                        if new_participant.userId == double_role_user_id:
+                            double_user_noticed += 1
+                        # Update.
+                        db_participant = db.query(models.ProjectParticipants).filter(models.ProjectParticipants.id == old_participant.id).first()
+                        db_participant.roleId = new_participant.roleId
+                        db.commit()
+                        db.refresh(db_participant)
+                        update_performed = True
+        if not update_performed:
+            # Insert new.
+            db_participant = models.ProjectParticipants(roleId=new_participant.roleId, projectId=projectId, userId=new_participant.userId)
+            db.add(db_participant)
+            db.commit()
+            db.refresh(db_participant)
+
+    # List of all new participants, used for deletion.
+    new_participants_list = []
+    for participant in new_participants:
+        new_participants_list.append(participant.userId)
+
+    for participant in db_old_participants:
+        if participant.userId not in new_participants_list:
+            # Delete (unseen participants).
+            db_participant = db.query(models.ProjectParticipants).filter(models.ProjectParticipants.id == participant.id).first()
+            db.delete(db_participant)
+            db.commit()
+
+    # Retrieve new list of project participants (updated) to make response up to date.
+    return db.query(models.ProjectParticipants).filter(models.ProjectParticipants.projectId == projectId).all()
+
+
 def delete_project(db: Session, identifier: int):
     db_project = db.query(models.Project).filter(models.Project.id == identifier).first()
     db.delete(db_project)
@@ -138,6 +199,7 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
     return db.query(models.ProjectParticipants)\
         .filter(models.ProjectParticipants.projectId == projectId,
                 models.ProjectParticipants.userId == userId)\
+        .order_by(models.ProjectParticipants.roleId)\
         .first()
 
 
