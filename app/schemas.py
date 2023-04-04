@@ -41,7 +41,6 @@ class ProjectParticipants(BaseModel):
     roleId: int
     projectId: int
     userId: int
-    isActive: bool = True
 
     class Config:
         orm_mode = True
