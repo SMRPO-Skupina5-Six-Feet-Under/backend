@@ -440,7 +440,7 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
 
     # check if story with same name already exists
     db_story = crud.get_story_by_name(db, name=story.name)
-    if db_story :
+    if db_story:
         raise HTTPException(status_code=400, detail="Story already exists")
     
     # check if project with given id exists
@@ -716,3 +716,98 @@ async def done_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJ
 
     # TODO: Additional checks are needed, if there is any time logged to selected task (it must be).
     return crud.update_task_assignee_done(db=db, taskId=taskId)
+
+
+@app.put("/task/{taskId}", response_model=schemas.Task, tags=["Tasks"])
+async def update_task(taskId: int, task: schemas.TaskInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId == 1:
+        raise HTTPException(status_code=400, detail="Product owner cannot edit tasks.")
+
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="Tasks that are marked as done cannot be edited.")
+
+    if db_task.hasAssigneeConfirmed:
+        if task.timeEstimate != db_task.timeEstimate:
+            raise HTTPException(status_code=400, detail="Time estimate cannot be edited if task is marked as accepted.")
+
+    if db_task.hasAssigneeConfirmed:
+        if task.assigneeUserId != db_task.assigneeUserId:
+            raise HTTPException(status_code=400, detail="Assignee cannot be edited if task is marked as accepted.")
+
+    db_story_tasks = crud.get_all_story_tasks(db=db, storyId=db_story.id)
+    sum_time_tasks = 0
+    for current_task in db_story_tasks:
+        sum_time_tasks += current_task.timeEstimate
+        if current_task.name.lower() == task.name.lower():
+            if db_task.name != task.name:
+                raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
+
+    upper_bound = db_story.timeEstimate - sum_time_tasks
+    if not 0 < task.timeEstimate <= upper_bound:
+        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
+
+    if task.assigneeUserId is not None:
+        db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=task.assigneeUserId)
+        if not db_user_project_role:
+            raise HTTPException(status_code=400, detail="Selected assignee is not part of the selected project.")
+        if db_user_project_role.roleId != 3:
+            raise HTTPException(status_code=400, detail="Product owner and scrum master (without developer role) cannot be declared as task assignees.")
+
+    return crud.update_task(db=db, task=task, db_task=db_task)
+
+
+@app.delete("/task/{taskId}", response_model=schemas.Task, tags=["Tasks"])
+async def delete_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId == 1:
+        raise HTTPException(status_code=400, detail="Product owner cannot delete tasks.")
+
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="Tasks that are marked as done cannot be deleted.")
+
+    if db_task.hasAssigneeConfirmed:
+        raise HTTPException(status_code=400, detail="Accepted tasks cannot be deleted.")
+
+    # TODO: Add another check for logged hours (task cannot be deleted if it has any logged hours - happens in case when assignee is null).
+    return crud.delete_task(db=db, taskId=taskId)

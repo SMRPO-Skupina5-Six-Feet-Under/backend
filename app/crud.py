@@ -356,3 +356,20 @@ def update_task_assignee_done(db: Session, taskId: int):
     db.commit()
     db.refresh(db_task)
     return db_task
+
+
+def update_task(db: Session, task: schemas.TaskInput, db_task: schemas.Task):
+    db_task.name = task.name
+    db_task.description = task.description
+    db_task.timeEstimate = task.timeEstimate
+    db_task.assigneeUserId = task.assigneeUserId
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def delete_task(db: Session, taskId: int):
+    db_task = db.query(models.Task).filter(models.Task.id == taskId).first()
+    db.delete(db_task)
+    db.commit()
+    return db_task
