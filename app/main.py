@@ -473,7 +473,7 @@ async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depend
         raise HTTPException(status_code=404, detail="Story does not exist")
     
     # check that name is not duplicate
-    #TODO check for capital letters and spaces
+    # TODO check for capital letters and spaces
     db_story_same_name = crud.get_story_by_name(db, name=story.name)
     if db_story_same_name is not None and db_story_same_name.id != id:
         raise HTTPException(status_code=400, detail="Story with given name already exists")
@@ -566,7 +566,6 @@ async def get_task(taskId: int, db: Session = Depends(get_db)):
 @app.post("/task/{storyId}", response_model=schemas.Task, tags=["Tasks"])
 async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # Mandatory fields should be checked by frontend (check if mandatory ones are fulfilled).
-    # We assume that frontend serves only valid users, that are actually part of the project, and not product owner.
 
     try:
         Authorize.jwt_required()
@@ -606,5 +605,12 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
     upper_bound = db_story.timeEstimate - sum_time_tasks
     if not 0 < task.timeEstimate <= upper_bound:
         raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
+
+    if task.assigneeUserId is not None:
+        db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=task.assigneeUserId)
+        if not db_user_project_role:
+            raise HTTPException(status_code=400, detail="Selected assignee is not part of the selected project.")
+        if db_user_project_role.roleId != 3:
+            raise HTTPException(status_code=400, detail="Product owner and scrum master (without developer role) cannot be declared as task assignees.")
 
     return crud.create_task(db=db, task=task, storyId=storyId)

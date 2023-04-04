@@ -203,6 +203,14 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
         .first()
 
 
+def get_user_role_from_project_descending(db: Session, projectId: int, userId: int):
+    return db.query(models.ProjectParticipants)\
+        .filter(models.ProjectParticipants.projectId == projectId,
+                models.ProjectParticipants.userId == userId)\
+        .order_by(models.ProjectParticipants.roleId.desc())\
+        .first()
+
+
 def get_all_user_roles(db: Session, projectId: int, userId: int):
     return db.query(models.ProjectParticipants)\
         .filter(models.ProjectParticipants.projectId == projectId, 
