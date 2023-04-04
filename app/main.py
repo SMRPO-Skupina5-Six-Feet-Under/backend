@@ -614,3 +614,67 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
             raise HTTPException(status_code=400, detail="Product owner and scrum master (without developer role) cannot be declared as task assignees.")
 
     return crud.create_task(db=db, task=task, storyId=storyId)
+
+
+@app.put("/task/{taskId}/accept", response_model=schemas.Task, tags=["Tasks"])
+async def accept_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    if db_user_project_role.roleId != 3:
+        raise HTTPException(status_code=400, detail="Product owner and scrum master (without developer role) cannot accept tasks.")
+
+    if db_task.assigneeUserId is not None:
+        if db_user_data.id != db_task.assigneeUserId:
+            raise HTTPException(status_code=400, detail="Selected task is already assigned to other user.")
+        if db_user_data.id == db_task.assigneeUserId and db_task.hasAssigneeConfirmed:
+            raise HTTPException(status_code=400, detail="This task is already assigned to you, no action required.")
+
+    return crud.update_task_assignee_confirm(db=db, taskId=taskId, userId=db_user_data.id)
+
+
+@app.put("/task/{taskId}/decline", response_model=schemas.Task, tags=["Tasks"])
+async def decline_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    if db_user_project_role.roleId != 3:
+        raise HTTPException(status_code=400, detail="Product owner and scrum master (without developer role) cannot decline tasks.")
+
+    if db_task.assigneeUserId is None:
+        raise HTTPException(status_code=400, detail="Unassigned tasks cannot be declined.")
+    else:
+        if db_user_data.id != db_task.assigneeUserId:
+            raise HTTPException(status_code=400, detail="Task is assigned to somebody else, so you cannot decline it.")
+
+    return crud.update_task_assignee_decline(db=db, taskId=taskId)

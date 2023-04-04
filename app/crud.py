@@ -328,3 +328,21 @@ def get_all_story_tasks(db: Session, storyId: int, skip: int = 0, limit: int = 1
 
 def get_task_by_id(db: Session, taskId: int):
     return db.query(models.Task).filter(models.Task.id == taskId).first()
+
+
+def update_task_assignee_confirm(db: Session, taskId: int, userId: int):
+    db_task = db.query(models.Task).filter(models.Task.id == taskId).first()
+    db_task.assigneeUserId = userId
+    db_task.hasAssigneeConfirmed = True
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def update_task_assignee_decline(db: Session, taskId: int):
+    db_task = db.query(models.Task).filter(models.Task.id == taskId).first()
+    db_task.assigneeUserId = None
+    db_task.hasAssigneeConfirmed = False
+    db.commit()
+    db.refresh(db_task)
+    return db_task
