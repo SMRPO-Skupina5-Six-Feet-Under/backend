@@ -547,12 +547,12 @@ async def delete_story(id: int, db: Session = Depends(get_db)):
     return crud.delete_story(db=db, story_id=id)
 
 
-@app.get("/task/{projectId}/my", response_model=List[schemas.Task], tags=["Tasks"])
-async def list_my_tasks(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    db_project = crud.get_project_by_id(db=db, identifier=projectId)
-    if not db_project:
-        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
-    return crud.get_my_tasks(db, projectId=projectId, skip=skip, limit=limit)
+@app.get("/task/{storyId}/all", response_model=List[schemas.Task], tags=["Tasks"])
+async def list_all_story_tasks(storyId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    db_story = crud.get_story_by_id(db=db, story_id=storyId)
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with given identifier does not exist.")
+    return crud.get_all_story_tasks(db, storyId=storyId, skip=skip, limit=limit)
 
 
 @app.get("/task/{taskId}", response_model=schemas.Task, tags=["Tasks"])
