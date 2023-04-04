@@ -199,6 +199,7 @@ def get_user_role_from_project(db: Session, projectId: int, userId: int):
     return db.query(models.ProjectParticipants)\
         .filter(models.ProjectParticipants.projectId == projectId,
                 models.ProjectParticipants.userId == userId)\
+        .order_by(models.ProjectParticipants.roleId)\
         .first()
 
 

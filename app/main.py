@@ -164,7 +164,7 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     if not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user must have admin rights, in order to perform this action.")
+        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
 
     db_project = crud.get_all_projects(db=db)
     for current_project in db_project:
@@ -429,6 +429,7 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
     
     # check if user is product owner or scrum master
+    is_user_project_owner_or_scrum_master = False
     for db_user_project_role in db_user_project_roles:
         if db_user_project_role.roleId == 1 or db_user_project_role.roleId == 2:
             is_user_project_owner_or_scrum_master = True
