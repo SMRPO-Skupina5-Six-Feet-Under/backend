@@ -644,6 +644,8 @@ async def accept_task(taskId: int, db: Session = Depends(get_db), Authorize: Aut
             raise HTTPException(status_code=400, detail="Selected task is already assigned to other user.")
         if db_user_data.id == db_task.assigneeUserId and db_task.hasAssigneeConfirmed:
             raise HTTPException(status_code=400, detail="This task is already assigned to you, no action required.")
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="Already done tasks cannot be accepted again.")
 
     return crud.update_task_assignee_confirm(db=db, taskId=taskId, userId=db_user_data.id)
 
@@ -681,7 +683,7 @@ async def decline_task(taskId: int, db: Session = Depends(get_db), Authorize: Au
 
 
 @app.put("/task/{taskId}/done", response_model=schemas.Task, tags=["Tasks"])
-async def decline_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+async def done_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
     except:
@@ -713,4 +715,4 @@ async def decline_task(taskId: int, db: Session = Depends(get_db), Authorize: Au
         raise HTTPException(status_code=400, detail="This task has already been marked as done.")
 
     # TODO: Additional checks are needed, if there is any time logged to selected task (it must be).
-    return crud.update_task_assignee_decline(db=db, taskId=taskId)
+    return crud.update_task_assignee_done(db=db, taskId=taskId)

@@ -346,3 +346,13 @@ def update_task_assignee_decline(db: Session, taskId: int):
     db.commit()
     db.refresh(db_task)
     return db_task
+
+
+def update_task_assignee_done(db: Session, taskId: int):
+    db_task = db.query(models.Task).filter(models.Task.id == taskId).first()
+    db_task.assigneeUserId = None
+    db_task.hasAssigneeConfirmed = False
+    db_task.isDone = True
+    db.commit()
+    db.refresh(db_task)
+    return db_task
