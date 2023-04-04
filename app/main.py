@@ -547,12 +547,12 @@ async def delete_story(id: int, db: Session = Depends(get_db)):
     return crud.delete_story(db=db, story_id=id)
 
 
-@app.get("/task/{storyId}/all", response_model=List[schemas.Task], tags=["Tasks"])
-async def list_all_story_tasks(storyId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    db_story = crud.get_story_by_id(db=db, story_id=storyId)
-    if not db_story:
-        raise HTTPException(status_code=400, detail="Story with given identifier does not exist.")
-    return crud.get_all_story_tasks(db, storyId=storyId, skip=skip, limit=limit)
+@app.get("/task/{projectId}/my", response_model=List[schemas.Task], tags=["Tasks"])
+async def list_my_tasks(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+    return crud.get_my_tasks(db, projectId=projectId, skip=skip, limit=limit)
 
 
 @app.get("/task/{taskId}", response_model=schemas.Task, tags=["Tasks"])
@@ -677,4 +677,40 @@ async def decline_task(taskId: int, db: Session = Depends(get_db), Authorize: Au
         if db_user_data.id != db_task.assigneeUserId:
             raise HTTPException(status_code=400, detail="Task is assigned to somebody else, so you cannot decline it.")
 
+    return crud.update_task_assignee_decline(db=db, taskId=taskId)
+
+
+@app.put("/task/{taskId}/done", response_model=schemas.Task, tags=["Tasks"])
+async def decline_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    if db_user_project_role.roleId != 3:
+        raise HTTPException(status_code=400, detail="Product owner and scrum master (without developer role) cannot mark tasks as done.")
+
+    if db_task.assigneeUserId is None:
+        raise HTTPException(status_code=400, detail="Unassigned tasks cannot be marked as done.")
+    if db_user_data.id != db_task.assigneeUserId:
+        raise HTTPException(status_code=400, detail="Task is assigned to somebody else, so you cannot mark it as done.")
+    if not db_task.hasAssigneeConfirmed:
+        raise HTTPException(status_code=400, detail="Task cannot be marked as done until you confirm it.")
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="This task has already been marked as done.")
+
+    # TODO: Additional checks are needed, if there is any time logged to selected task (it must be).
     return crud.update_task_assignee_decline(db=db, taskId=taskId)
