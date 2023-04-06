@@ -299,6 +299,14 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
     if sprint.velocity <= 0:
         raise HTTPException(status_code=400, detail="Sprint velocity cannot be less or equal to zero.")
 
+    start_date_weekend = sprint.startDate.date().weekday()
+    if start_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint start date cannot be during the weekend.")
+
+    end_date_weekend = sprint.endDate.date().weekday()
+    if end_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint end date cannot be during the weekend.")
+
     current_date = datetime.date.today()
     if sprint.startDate.date() < current_date:
         raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
@@ -383,6 +391,14 @@ async def update_sprint(sprintId: int, sprint: schemas.SprintPatch, db: Session 
 
     new_start_date = sprint.startDate.date() if sprint.startDate is not None else db_sprint.startDate.date()
     new_end_date = sprint.endDate.date() if sprint.endDate is not None else db_sprint.endDate.date()
+
+    start_date_weekend = new_start_date.weekday()
+    if start_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint start date cannot be during the weekend.")
+
+    end_date_weekend = new_end_date.weekday()
+    if end_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint end date cannot be during the weekend.")
 
     if new_start_date < current_date:
         raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
