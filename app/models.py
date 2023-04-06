@@ -101,3 +101,14 @@ class Task(Base):
     isDone = Column(Boolean, default=False)
 
     storyId = Column(Integer, ForeignKey("story.id"))
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(String)
+    timestamp = Column(DateTime)
+
+    userId = Column(Integer, ForeignKey("user.id"))
+    projectId = Column(Integer, ForeignKey("project.id"))

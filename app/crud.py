@@ -375,3 +375,20 @@ def delete_task(db: Session, taskId: int):
     db.delete(db_task)
     db.commit()
     return db_task
+
+
+def get_all_project_messages(db: Session, projectId: int, skip: int = 0, limit: int = 1000):
+    return db.query(models.Message).filter(models.Message.projectId == projectId).order_by(models.Message.timestamp).offset(skip).limit(limit).all()
+
+
+def get_my_project_messages(db: Session, projectId: int, userId: int, skip: int = 0, limit: int = 1000):
+    return db.query(models.Message).filter(models.Message.projectId == projectId).filter(models.Message.userId == userId).order_by(models.Message.timestamp).offset(skip).limit(limit).all()
+
+
+def create_message(db: Session, message: schemas.MessageInput, projectId: int, userId: int):
+    timestamp = datetime.datetime.now()
+    db_message = models.Message(content=message.content, timestamp=timestamp, userId=userId, projectId=projectId)
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
+    return db_message

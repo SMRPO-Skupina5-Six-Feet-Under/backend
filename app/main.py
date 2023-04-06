@@ -838,3 +838,54 @@ async def delete_task(taskId: int, db: Session = Depends(get_db), Authorize: Aut
 
     # TODO: Add another check for logged hours (task cannot be deleted if it has any logged hours - happens in case when assignee is null).
     return crud.delete_task(db=db, taskId=taskId)
+
+
+@app.get("/messages/{projectId}/all", response_model=List[schemas.Message], tags=["Messages"])
+async def list_all_project_messages(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+    return crud.get_all_project_messages(db, projectId=projectId, skip=skip, limit=limit)
+
+
+@app.get("/messages/{projectId}/my", response_model=List[schemas.Message], tags=["Messages"])
+async def list_my_project_messages(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    return crud.get_my_project_messages(db, projectId=projectId, userId=db_user_data.id, skip=skip, limit=limit)
+
+
+@app.post("/messages/{projectId}", response_model=schemas.Message, tags=["Messages"])
+async def create_message(projectId: int, message: schemas.MessageInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if len(message.content) == 0:
+        raise HTTPException(status_code=400, detail="Message must not be empty.")
+
+    return crud.create_message(db=db, message=message, userId=db_user_data.id, projectId=projectId)

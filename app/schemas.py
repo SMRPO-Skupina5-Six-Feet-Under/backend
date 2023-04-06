@@ -200,3 +200,21 @@ class TaskInput(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class Message(BaseModel):
+    id: int
+    content: str
+    timestamp: datetime
+    userId: int
+    projectId: int
+
+    class Config:
+        orm_mode = True
+
+
+class MessageInput(BaseModel):
+    content: str
+
+    class Config:
+        orm_mode = True
