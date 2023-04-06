@@ -75,7 +75,8 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
 def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     userTryingToLogIn: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
     if userTryingToLogIn is not None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password:
-        access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName)
+        access_token_expires = datetime.timedelta(minutes=90)
+        access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName, expires_time=access_token_expires)
         __returnUser = copy.deepcopy(userTryingToLogIn)
         crud.setUserLogInTime(db, userTryingToLogIn.id)
         return {"access_token": access_token, "user": __returnUser}
