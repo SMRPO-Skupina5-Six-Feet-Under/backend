@@ -140,9 +140,11 @@ def update_project_participants(db: Session, projectId: int, new_participants: L
 
 def delete_project(db: Session, identifier: int):
     db_project = db.query(models.Project).filter(models.Project.id == identifier).first()
-    db.delete(db_project)
+    db_project.isAlive = False
     db.commit()
-    return db_project
+    db.refresh(db_project)
+    project_response = schemas.ProjectDataPatchResponse(id=db_project.id, name=db_project.name, description=db_project.description, isAlive=db_project.isAlive)
+    return project_response
 
 
 def get_project_participants(db: Session, projectId: int):
@@ -158,7 +160,7 @@ def update_project_data(db: Session, project: schemas.ProjectDataPatch, identifi
     db.commit()
     db.refresh(db_project)
 
-    response_project_data = schemas.ProjectDataPatchResponse(id=db_project.id, name=db_project.name, description=db_project.description)
+    response_project_data = schemas.ProjectDataPatchResponse(id=db_project.id, name=db_project.name, description=db_project.description, isAlive=db_project.isAlive)
 
     return response_project_data
 

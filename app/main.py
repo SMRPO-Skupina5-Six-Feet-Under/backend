@@ -179,11 +179,21 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
     return crud.create_project(db=db, project=project)
 
 
-@app.delete("/project/{identifier}", response_model=schemas.Project, tags=["Projects"])
-async def delete_project(identifier: int, db: Session = Depends(get_db)):
-    # We assume that frontend always serves only projects that actually exist.
+@app.delete("/project/{identifier}", response_model=schemas.ProjectDataPatchResponse, tags=["Projects"])
+async def delete_project(identifier: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # We assume that frontend always serves only projects that actually exist (attribute isAlive set to True).
     # Therefore, there is no need for additional check for project existence on backend.
-    # TODO: This does not work properly yet! Maybe it won't be even needed (question to product owner).
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    if not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
+
     return crud.delete_project(db=db, identifier=identifier)
 
 

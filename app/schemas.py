@@ -50,6 +50,7 @@ class Project(BaseModel):
     id: int
     name: str
     description: str
+    isAlive: bool = True
     projectParticipants: List[ProjectParticipantsInput]
 
     class Config:
@@ -77,6 +78,7 @@ class ProjectDataPatchResponse(BaseModel):
     id: int
     name: str
     description: str
+    isAlive: bool
 
     class Config:
         orm_mode = True

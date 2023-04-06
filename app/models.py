@@ -22,6 +22,7 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(256))
     description = Column(String)
+    isAlive = Column(Boolean, default=True)
 
 
 class ProjectParticipants(Base):
