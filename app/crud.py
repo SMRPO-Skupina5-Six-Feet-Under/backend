@@ -56,7 +56,7 @@ def get_project_by_name(db: Session, name: str):
 
 
 def get_all_projects(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Project).offset(skip).limit(limit).all()
+    return db.query(models.Project).filter(models.Project.isAlive).offset(skip).limit(limit).all()
 
 
 def create_project(db: Session, project: schemas.ProjectCreate):
