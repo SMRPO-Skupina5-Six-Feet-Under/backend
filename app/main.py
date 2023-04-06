@@ -73,12 +73,12 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
 
 @app.post('/login', tags=["Login"])
 def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    userTryingToLogIn: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
-    if userTryingToLogIn is not None and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password:
+    user_trying_to_login: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
+    if user_trying_to_login is not None and user_trying_to_login.userName == logInData.userName and user_trying_to_login.password == logInData.password:
         access_token_expires = datetime.timedelta(minutes=90)
-        access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName, expires_time=access_token_expires)
-        __returnUser = copy.deepcopy(userTryingToLogIn)
-        crud.setUserLogInTime(db, userTryingToLogIn.id)
+        access_token = Authorize.create_access_token(subject=user_trying_to_login.userName, expires_time=access_token_expires)
+        __returnUser = copy.deepcopy(user_trying_to_login)
+        crud.setUserLogInTime(db, user_trying_to_login.id)
         return {"access_token": access_token, "user": __returnUser}
     else:
         raise HTTPException(status_code=401, detail='Incorrect username or password')
