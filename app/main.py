@@ -35,7 +35,7 @@ app.add_middleware(
 
 
 # init baze
-models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
+#models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -73,11 +73,12 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
 
 @app.post('/login', tags=["Login"])
 def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    userTryingToLogIn: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
-    if userTryingToLogIn is not None and not userTryingToLogIn.userDeleted and userTryingToLogIn.userName == logInData.userName and userTryingToLogIn.password == logInData.password:
-        access_token = Authorize.create_access_token(subject=userTryingToLogIn.userName)
-        __returnUser = copy.deepcopy(userTryingToLogIn)
-        crud.setUserLogInTime(db, userTryingToLogIn.id)
+    user_trying_to_login: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
+    if user_trying_to_login is not None and user_trying_to_login.userName == logInData.userName and user_trying_to_login.password == logInData.password:
+        access_token_expires = datetime.timedelta(minutes=90)
+        access_token = Authorize.create_access_token(subject=user_trying_to_login.userName, expires_time=access_token_expires)
+        __returnUser = copy.deepcopy(user_trying_to_login)
+        crud.setUserLogInTime(db, user_trying_to_login.id)
         return {"access_token": access_token, "user": __returnUser}
     else:
         raise HTTPException(status_code=401, detail='Incorrect username or password')
@@ -90,12 +91,12 @@ def user(userId: int, changePasswordData: schemas.ChangePasswordData, db: Sessio
         Authorize.jwt_required()
     except:
         raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
-    #user_name: str = Authorize.get_jwt_subject()  # get username from logged in user - trough Authentication Header
+    user_name: str = Authorize.get_jwt_subject()  # get username from logged in user - trough Authentication Header
     user_to_change: schemas.UserBase = crud.get_user_by_id(db, userId)
     if user_to_change is None:
         raise HTTPException(status_code=404, detail="User with this id is not present in database.")
-    #if user_to_change.userName != user_name:
-    #    raise HTTPException(status_code=400, detail="Id and username missmatch")
+    if user_to_change.userName != user_name:
+        raise HTTPException(status_code=400, detail="Id and username missmatch")
     if changePasswordData is None or not changePasswordData.newPassword:
         raise HTTPException(status_code=400, detail="New password not provided")
     crud.changeUserPassword(db, userId, changePasswordData.newPassword)
@@ -126,44 +127,6 @@ def user(userName: str, db: Session = Depends(get_db), Authorize: AuthJWT = Depe
     Authorize.jwt_required()
     return crud.get_UporabnikBase_by_username(db, userName)
 
-# Update user
-@app.put('/users/{userId}', response_model=schemas.UserBase, tags=["Users"])
-def update_user_data(userData: schemas.UserBase, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    try:
-        Authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
-    
-    userNameExists = crud.edit_check_user_username_exist(db, userData.userName, userData.id)
-    emailExists = crud.edit_check_user_email_exist(db, userData.email, userData.id)
-    if userNameExists:
-        raise HTTPException(status_code=400, detail="User with this username already exists.")
-    elif emailExists:
-        raise HTTPException(status_code=400, detail="User with this email already exists.")
-    
-    return crud.update_user(db, userData)
-
-# Delete user
-@app.delete("/users/{userId}", response_model=schemas.UserBase, tags=["Users"])
-async def delete_user(userId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    try:
-        Authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
-    
-    user_name = Authorize.get_jwt_subject()
-    db_current_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
-    if db_current_user_data.id == userId:
-        raise HTTPException(status_code=400, detail="You can't delete yourself.")
-
-    if not db_current_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
-
-    db_user = crud.get_user_by_id(db=db, identifier=userId)
-    if not db_user:
-        raise HTTPException(status_code=400, detail="User with given identifier does not exist.")
-    return crud.delete_user(db=db, userId=userId)
-    
 
 @app.get("/project/all", response_model=List[schemas.Project], tags=["Projects"])
 async def list_all_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -216,11 +179,21 @@ async def create_project(project: schemas.ProjectCreate, db: Session = Depends(g
     return crud.create_project(db=db, project=project)
 
 
-@app.delete("/project/{identifier}", response_model=schemas.Project, tags=["Projects"])
-async def delete_project(identifier: int, db: Session = Depends(get_db)):
-    # We assume that frontend always serves only projects that actually exist.
+@app.delete("/project/{identifier}", response_model=schemas.ProjectDataPatchResponse, tags=["Projects"])
+async def delete_project(identifier: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # We assume that frontend always serves only projects that actually exist (attribute isAlive set to True).
     # Therefore, there is no need for additional check for project existence on backend.
-    # TODO: This does not work properly yet! Maybe it won't be even needed (question to product owner).
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    if not db_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
+
     return crud.delete_project(db=db, identifier=identifier)
 
 
@@ -337,6 +310,14 @@ async def create_sprint(projectId: int, sprint: schemas.SprintCreate, db: Sessio
     if sprint.velocity <= 0:
         raise HTTPException(status_code=400, detail="Sprint velocity cannot be less or equal to zero.")
 
+    start_date_weekend = sprint.startDate.date().weekday()
+    if start_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint start date cannot be during the weekend.")
+
+    end_date_weekend = sprint.endDate.date().weekday()
+    if end_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint end date cannot be during the weekend.")
+
     current_date = datetime.date.today()
     if sprint.startDate.date() < current_date:
         raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
@@ -421,6 +402,14 @@ async def update_sprint(sprintId: int, sprint: schemas.SprintPatch, db: Session 
 
     new_start_date = sprint.startDate.date() if sprint.startDate is not None else db_sprint.startDate.date()
     new_end_date = sprint.endDate.date() if sprint.endDate is not None else db_sprint.endDate.date()
+
+    start_date_weekend = new_start_date.weekday()
+    if start_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint start date cannot be during the weekend.")
+
+    end_date_weekend = new_end_date.weekday()
+    if end_date_weekend > 4:
+        raise HTTPException(status_code=400, detail="Sprint end date cannot be during the weekend.")
 
     if new_start_date < current_date:
         raise HTTPException(status_code=400, detail="Sprint start date cannot be earlier than today.")
@@ -849,3 +838,54 @@ async def delete_task(taskId: int, db: Session = Depends(get_db), Authorize: Aut
 
     # TODO: Add another check for logged hours (task cannot be deleted if it has any logged hours - happens in case when assignee is null).
     return crud.delete_task(db=db, taskId=taskId)
+
+
+@app.get("/messages/{projectId}/all", response_model=List[schemas.Message], tags=["Messages"])
+async def list_all_project_messages(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+    return crud.get_all_project_messages(db, projectId=projectId, skip=skip, limit=limit)
+
+
+@app.get("/messages/{projectId}/my", response_model=List[schemas.Message], tags=["Messages"])
+async def list_my_project_messages(projectId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    return crud.get_my_project_messages(db, projectId=projectId, userId=db_user_data.id, skip=skip, limit=limit)
+
+
+@app.post("/messages/{projectId}", response_model=schemas.Message, tags=["Messages"])
+async def create_message(projectId: int, message: schemas.MessageInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if len(message.content) == 0:
+        raise HTTPException(status_code=400, detail="Message must not be empty.")
+
+    return crud.create_message(db=db, message=message, userId=db_user_data.id, projectId=projectId)
