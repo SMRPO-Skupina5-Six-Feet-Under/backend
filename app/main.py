@@ -35,7 +35,7 @@ app.add_middleware(
 
 
 # init baze
-#models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
+# models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -74,7 +74,7 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
 @app.post('/login', tags=["Login"])
 def login(logInData: schemas.LogInData, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     user_trying_to_login: schemas.UserBase = crud.get_UporabnikBase_by_username(db, logInData.userName)
-    if user_trying_to_login is not None and user_trying_to_login.userName == logInData.userName and user_trying_to_login.password == logInData.password:
+    if user_trying_to_login is not None and not user_trying_to_login.userDeleted and user_trying_to_login.userName == logInData.userName and user_trying_to_login.password == logInData.password:
         access_token_expires = datetime.timedelta(minutes=90)
         access_token = Authorize.create_access_token(subject=user_trying_to_login.userName, expires_time=access_token_expires)
         __returnUser = copy.deepcopy(user_trying_to_login)
@@ -91,12 +91,12 @@ def user(userId: int, changePasswordData: schemas.ChangePasswordData, db: Sessio
         Authorize.jwt_required()
     except:
         raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
-    user_name: str = Authorize.get_jwt_subject()  # get username from logged in user - trough Authentication Header
+    #user_name: str = Authorize.get_jwt_subject()  # get username from logged in user - trough Authentication Header
     user_to_change: schemas.UserBase = crud.get_user_by_id(db, userId)
     if user_to_change is None:
         raise HTTPException(status_code=404, detail="User with this id is not present in database.")
-    if user_to_change.userName != user_name:
-        raise HTTPException(status_code=400, detail="Id and username missmatch")
+    #if user_to_change.userName != user_name:
+    #    raise HTTPException(status_code=400, detail="Id and username missmatch")
     if changePasswordData is None or not changePasswordData.newPassword:
         raise HTTPException(status_code=400, detail="New password not provided")
     crud.changeUserPassword(db, userId, changePasswordData.newPassword)
@@ -126,6 +126,44 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def user(userName: str, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     Authorize.jwt_required()
     return crud.get_UporabnikBase_by_username(db, userName)
+
+# Update user
+@app.put('/users/{userId}', response_model=schemas.UserBase, tags=["Users"])
+def update_user_data(userData: schemas.UserBase, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    userNameExists = crud.edit_check_user_username_exist(db, userData.userName, userData.id)
+    emailExists = crud.edit_check_user_email_exist(db, userData.email, userData.id)
+    if userNameExists:
+        raise HTTPException(status_code=400, detail="User with this username already exists.")
+    elif emailExists:
+        raise HTTPException(status_code=400, detail="User with this email already exists.")
+
+    return crud.update_user(db, userData)
+
+# Delete user
+@app.delete("/users/{userId}", response_model=schemas.UserBase, tags=["Users"])
+async def delete_user(userId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_current_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    if db_current_user_data.id == userId:
+        raise HTTPException(status_code=400, detail="You can't delete yourself.")
+
+    if not db_current_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
+
+    db_user = crud.get_user_by_id(db=db, identifier=userId)
+    if not db_user:
+        raise HTTPException(status_code=400, detail="User with given identifier does not exist.")
+    return crud.delete_user(db=db, userId=userId)
 
 
 @app.get("/project/all", response_model=List[schemas.Project], tags=["Projects"])
