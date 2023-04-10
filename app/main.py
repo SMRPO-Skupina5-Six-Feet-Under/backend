@@ -35,7 +35,7 @@ app.add_middleware(
 
 
 # init baze
-# models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
+#models.Base.metadata.drop_all(bind=engine) #če tega ni pol spremembe v classu (dodana polja) ne bojo v bazi
 models.Base.metadata.create_all(bind=engine)
 
 

@@ -16,13 +16,42 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(new_user)
     return get_UporabnikBase_by_username(db=db, userName=user.userName)
 
+def delete_user(db: Session, userId: int):
+    db_user = db.query(models.User).filter(models.User.id == userId).first()
+    db_user.userDeleted = True
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user(db: Session, user: schemas.UserBase):
+    db_user = db.query(models.User).filter(models.User.id == user.id).first()
+    db_user.userName = user.userName
+    db_user.firstName = user.firstName
+    db_user.lastName = user.lastName
+    db_user.email = user.email
+    db_user.isAdmin = user.isAdmin
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def edit_check_user_username_exist(db: Session, uUserName: str, uId: int):
+    return db.query(models.User).filter(models.User.userName == uUserName, 
+                                        models.User.id != uId, 
+                                        models.User.userDeleted == False).first()
+
+def edit_check_user_email_exist(db: Session, uEmail: str, uId: int):
+    return db.query(models.User).filter(models.User.email == uEmail, 
+                                        models.User.id != uId, 
+                                        models.User.userDeleted == False).first()
 
 def check_user_username_exist(db: Session, uUserName: str):
-    return db.query(models.User).filter(models.User.userName == uUserName).first()
+    return db.query(models.User).filter(models.User.userName == uUserName, 
+                                        models.User.userDeleted == False).first()
 
 
 def check_user_email_exist(db: Session, uEmail: str):
-    return db.query(models.User).filter(models.User.email == uEmail).first()
+    return db.query(models.User).filter(models.User.email == uEmail,
+                                        models.User.userDeleted == False).first()
 
 
 def get_UporabnikBase_by_username(db: Session, userName: str):
