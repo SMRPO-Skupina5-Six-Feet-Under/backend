@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     isAdmin: bool
     password: str
     lastLogin: Optional[datetime]
+    userDeleted: Optional[bool]
 
     class Config:
         orm_mode = True

@@ -7,13 +7,14 @@ class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True, index=True)
-    userName = Column(String(256), unique=True)
+    userName = Column(String(256))
     firstName = Column(String(256))
     lastName = Column(String(256))
-    email = Column(String(256), unique=True)
+    email = Column(String(256))
     isAdmin = Column(Boolean, default=False)
     password = Column(String(128))
     lastLogin = Column(DateTime, nullable=True)
+    userDeleted = Column(Boolean, default=False)
 
 
 class Project(Base):
