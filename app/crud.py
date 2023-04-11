@@ -1,6 +1,7 @@
 import datetime
 from typing import List
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app import models, schemas
 
 
@@ -35,23 +36,19 @@ def update_user(db: Session, user: schemas.UserBase):
     return db_user
 
 def edit_check_user_username_exist(db: Session, uUserName: str, uId: int):
-    return db.query(models.User).filter(models.User.userName == uUserName, 
-                                        models.User.id != uId, 
-                                        models.User.userDeleted == False).first()
+    return db.query(models.User).filter(func.lower(models.User.userName) == func.lower(uUserName),
+                                        models.User.id != uId).first()
 
 def edit_check_user_email_exist(db: Session, uEmail: str, uId: int):
-    return db.query(models.User).filter(models.User.email == uEmail, 
-                                        models.User.id != uId, 
-                                        models.User.userDeleted == False).first()
+    return db.query(models.User).filter(func.lower(models.User.email) == func.lower(uEmail),
+                                        models.User.id != uId).first()
 
 def check_user_username_exist(db: Session, uUserName: str):
-    return db.query(models.User).filter(models.User.userName == uUserName, 
-                                        models.User.userDeleted == False).first()
+    return db.query(models.User).filter(func.lower(models.User.userName) == func.lower(uUserName)).first()
 
 
 def check_user_email_exist(db: Session, uEmail: str):
-    return db.query(models.User).filter(models.User.email == uEmail,
-                                        models.User.userDeleted == False).first()
+    return db.query(models.User).filter(func.lower(models.User.email) == func.lower(uEmail)).first()
 
 
 def get_UporabnikBase_by_username(db: Session, userName: str):
