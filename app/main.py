@@ -135,6 +135,11 @@ def update_user_data(userData: schemas.UserBase, db: Session = Depends(get_db), 
     except:
         raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
 
+    user_name = Authorize.get_jwt_subject()
+    db_current_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    if not db_current_user_data.isAdmin:
+        raise HTTPException(status_code=400, detail="Currently logged user must have system administrator rights, in order to perform this action.")
+
     userNameExists = crud.edit_check_user_username_exist(db, userData.userName, userData.id)
     emailExists = crud.edit_check_user_email_exist(db, userData.email, userData.id)
     if userNameExists:
