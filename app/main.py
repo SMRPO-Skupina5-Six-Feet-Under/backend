@@ -560,10 +560,11 @@ async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depend
     if story.priority == "string":
         story.priority = db_story.priority
     
-    # check that sprint exists 
-    db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
-    if db_sprint is None:
-        raise HTTPException(status_code=404, detail="Sprint does not exist")
+    # check that sprint exists
+    if(story.sprint_id is not None):
+        db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
+        if db_sprint is None:
+            raise HTTPException(status_code=404, detail="Sprint does not exist")
 
     # prevent changing projectId
     story.projectId = db_story.projectId
