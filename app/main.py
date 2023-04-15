@@ -673,7 +673,7 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
         if current_task.name.lower() == task.name.lower():
             raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
 
-    upper_bound = db_story.timeEstimate - sum_time_tasks
+    upper_bound = (db_story.timeEstimate * 6) - sum_time_tasks
     if not 0 < task.timeEstimate <= upper_bound:
         raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
 
@@ -834,7 +834,7 @@ async def update_task(taskId: int, task: schemas.TaskInput, db: Session = Depend
             if db_task.name != task.name:
                 raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
 
-    upper_bound = db_story.timeEstimate - sum_time_tasks
+    upper_bound = (db_story.timeEstimate * 6) - sum_time_tasks
     if not 0 < task.timeEstimate <= upper_bound:
         raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
 
