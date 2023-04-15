@@ -475,8 +475,8 @@ async def read_all_stories_in_project(project_id: int, skip: int = 0, limit: int
 
 
 @app.get("/story/{id}", response_model=schemas.Story, tags=["Stories"])
-async def read_story(identifier: int, db: Session = Depends(get_db)):
-    db_story = crud.get_story_by_id(db, story_id=identifier)
+async def read_story(id: int, db: Session = Depends(get_db)):
+    db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
