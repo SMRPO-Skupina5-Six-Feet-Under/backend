@@ -104,6 +104,18 @@ class Task(Base):
     storyId = Column(Integer, ForeignKey("story.id"))
 
 
+class WorkTime(Base):
+    __tablename__ = "work_time"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime)
+    timeDone = Column(Integer)
+    timeRemainingEstimate = Column(Integer)
+
+    userId = Column(Integer, ForeignKey("user.id"))
+    taskId = Column(Integer, ForeignKey("task.id"))
+
+
 class Message(Base):
     __tablename__ = "message"
 
