@@ -100,7 +100,7 @@ def create_project(db: Session, project: schemas.ProjectCreate):
         db.commit()
         db.refresh(db_project_participant)
 
-    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.description, projectParticipants=project.projectParticipants)
+    response_project_data = schemas.Project(id=db_project.id, name=project.name, description=project.description, documentation="", projectParticipants=project.projectParticipants)
 
     return response_project_data
 
