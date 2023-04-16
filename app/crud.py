@@ -17,12 +17,14 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(new_user)
     return get_UporabnikBase_by_username(db=db, userName=user.userName)
 
+
 def delete_user(db: Session, userId: int):
     db_user = db.query(models.User).filter(models.User.id == userId).first()
     db_user.userDeleted = True
     db.commit()
     db.refresh(db_user)
     return db_user
+
 
 def update_user(db: Session, user: schemas.UserBase):
     db_user = db.query(models.User).filter(models.User.id == user.id).first()
@@ -35,13 +37,16 @@ def update_user(db: Session, user: schemas.UserBase):
     db.refresh(db_user)
     return db_user
 
+
 def edit_check_user_username_exist(db: Session, uUserName: str, uId: int):
     return db.query(models.User).filter(func.lower(models.User.userName) == func.lower(uUserName),
                                         models.User.id != uId).first()
 
+
 def edit_check_user_email_exist(db: Session, uEmail: str, uId: int):
     return db.query(models.User).filter(func.lower(models.User.email) == func.lower(uEmail),
                                         models.User.id != uId).first()
+
 
 def check_user_username_exist(db: Session, uUserName: str):
     return db.query(models.User).filter(func.lower(models.User.userName) == func.lower(uUserName)).first()
@@ -77,17 +82,13 @@ def get_project_by_id(db: Session, identifier: int):
     return db.query(models.Project).filter(models.Project.id == identifier).first()
 
 
-def get_project_by_name(db: Session, name: str):
-    return db.query(models.Project).filter(models.Project.name == name).first()
-
-
 def get_all_projects(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Project).filter(models.Project.isAlive).offset(skip).limit(limit).all()
 
 
 def create_project(db: Session, project: schemas.ProjectCreate):
     # Add to project table.
-    db_project = models.Project(name=project.name, description=project.description)
+    db_project = models.Project(name=project.name, description=project.description, documentation="")
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -418,3 +419,11 @@ def create_message(db: Session, message: schemas.MessageInput, projectId: int, u
     db.commit()
     db.refresh(db_message)
     return db_message
+
+
+def update_documentation(db: Session, documentation: schemas.ProjectDocumentation, db_project: schemas.Project):
+    db_project.documentation = documentation.text
+    db.commit()
+    db.refresh(db_project)
+
+    return db_project.documentation

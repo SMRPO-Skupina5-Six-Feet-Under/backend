@@ -178,7 +178,7 @@ async def list_all_projects(skip: int = 0, limit: int = 100, db: Session = Depen
     response_data: List[schemas.Project] = []
     for project in db_projects:
         db_project_participants = crud.get_project_participants(db=db, projectId=project.id)
-        project_data = schemas.Project(id=project.id, name=project.name, description=project.description, projectParticipants=db_project_participants)
+        project_data = schemas.Project(id=project.id, name=project.name, description=project.description, documentation=project.documentation, projectParticipants=db_project_participants)
         response_data.append(project_data)
 
     return response_data
@@ -191,7 +191,7 @@ async def get_project(identifier: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
     db_project_participants = crud.get_project_participants(db=db, projectId=identifier)
-    response_project_data = schemas.Project(id=db_project.id, name=db_project.name, description=db_project.description, projectParticipants=db_project_participants)
+    response_project_data = schemas.Project(id=db_project.id, name=db_project.name, description=db_project.description, documentation=db_project.documentation, projectParticipants=db_project_participants)
 
     return response_project_data
 
@@ -933,3 +933,14 @@ async def create_message(projectId: int, message: schemas.MessageInput, db: Sess
         raise HTTPException(status_code=400, detail="Message must not be empty.")
 
     return crud.create_message(db=db, message=message, userId=db_user_data.id, projectId=projectId)
+
+
+@app.put("/project/documentation/{projectId}", tags=["Documentation"])
+async def update_project_documentation(projectId: int, documentation: schemas.ProjectDocumentation, db: Session = Depends(get_db)):
+    # Backend does not check which user is currently logged in, since there is no requirement for role checking here.
+    # Therefore, backend does not check if user is part of the project, so frontend must take care of that.
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    return crud.update_documentation(db=db, documentation=documentation, db_project=db_project)
