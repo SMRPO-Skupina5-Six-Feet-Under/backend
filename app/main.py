@@ -1,8 +1,9 @@
 from fastapi import status
 from sqlalchemy.orm import Session
+from starlette.responses import FileResponse
 from .database import SessionLocal, engine
 from typing import List
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, File, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
@@ -951,7 +952,7 @@ async def update_project_documentation(projectId: int, documentation: schemas.Pr
 
 
 @app.post("/project/documentation/export/{projectId}", tags=["Documentation"])
-async def update_project_documentation(projectId: int, documentation: schemas.ProjectDocumentation, db: Session = Depends(get_db)):
+async def export_project_documentation(projectId: int, db: Session = Depends(get_db)):
     # Backend does not check which user is currently logged in, since there is no requirement for role checking here.
     # Therefore, backend does not check if user is part of the project, so frontend must take care of that.
 
@@ -959,4 +960,22 @@ async def update_project_documentation(projectId: int, documentation: schemas.Pr
     if not db_project:
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
-    return crud.export_documentation(db_project=db_project)
+    filename = f"project_{db_project.id}_documentation.txt"
+    with open(filename, "w") as file:
+        if db_project.documentation == "":
+            file.write(" ")
+        else:
+            file.write(db_project.documentation)
+
+    return FileResponse(filename, media_type="text/plain", filename=filename)
+
+
+@app.post("/project/documentation/import", tags=["Documentation"])
+async def import_project_documentation(file: UploadFile = File(...)):
+    # This endpoint is only meant for uploading documentation from text file to screen.
+    # For uploading new documentation, you must use PUT endpoint.
+    # For now, frontend must take care for handling overwriting (append text or overwrite text).
+
+    text = await file.read()
+    text_data = text.decode()
+    return text_data
