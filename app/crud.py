@@ -127,8 +127,9 @@ def update_project_participants(db: Session, projectId: int, new_participants: L
                 if update_performed:
                     # Delete (get rid of duplicates because of old entries).
                     db_participant = db.query(models.ProjectParticipants).filter(models.ProjectParticipants.id == old_participant.id).first()
-                    db.delete(db_participant)
-                    db.commit()
+                    if db_participant:
+                        db.delete(db_participant)
+                        db.commit()
                 else:
                     # Handle double role (scrum master and developer) for the same user.
                     if double_user_noticed == 1:
@@ -138,10 +139,11 @@ def update_project_participants(db: Session, projectId: int, new_participants: L
                             double_user_noticed += 1
                         # Update.
                         db_participant = db.query(models.ProjectParticipants).filter(models.ProjectParticipants.id == old_participant.id).first()
-                        db_participant.roleId = new_participant.roleId
-                        db.commit()
-                        db.refresh(db_participant)
-                        update_performed = True
+                        if db_participant:
+                            db_participant.roleId = new_participant.roleId
+                            db.commit()
+                            db.refresh(db_participant)
+                            update_performed = True
         if not update_performed:
             # Insert new.
             db_participant = models.ProjectParticipants(roleId=new_participant.roleId, projectId=projectId, userId=new_participant.userId)
