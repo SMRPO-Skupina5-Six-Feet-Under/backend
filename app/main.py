@@ -266,11 +266,12 @@ async def update_project_data(identifier: int, project: schemas.ProjectDataPatch
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=identifier, userId=db_user_data.id)
 
-    if not db_user_project_role or not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project or is not system administrator.")
+    if not db_user_data.isAdmin:
+        if not db_user_project_role:
+            raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project or is not system administrator.")
 
-    if db_user_project_role.roleId != 2 and not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project or system administrator, in order to perform this action.")
+        if db_user_project_role.roleId != 2:
+            raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project or system administrator, in order to perform this action.")
 
     if project.name is not None:
         db_project = crud.get_all_projects(db=db)
@@ -297,11 +298,12 @@ async def update_project_participants(identifier: int, participants: List[schema
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=identifier, userId=db_user_data.id)
 
-    if not db_user_project_role or not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project or is not system administrator.")
+    if not db_user_data.isAdmin:
+        if not db_user_project_role:
+            raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project or is not system administrator.")
 
-    if db_user_project_role.roleId != 2 and not db_user_data.isAdmin:
-        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project or system administrator, in order to perform this action.")
+        if db_user_project_role.roleId != 2:
+            raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project or system administrator, in order to perform this action.")
 
     # Validate new list of all participants.
     check, message = static.check_project_roles(participants, db)
@@ -940,8 +942,21 @@ async def create_message(projectId: int, message: schemas.MessageInput, db: Sess
 async def update_project_documentation(projectId: int, documentation: schemas.ProjectDocumentation, db: Session = Depends(get_db)):
     # Backend does not check which user is currently logged in, since there is no requirement for role checking here.
     # Therefore, backend does not check if user is part of the project, so frontend must take care of that.
+
     db_project = crud.get_project_by_id(db=db, identifier=projectId)
     if not db_project:
         raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
 
     return crud.update_documentation(db=db, documentation=documentation, db_project=db_project)
+
+
+@app.post("/project/documentation/export/{projectId}", tags=["Documentation"])
+async def update_project_documentation(projectId: int, documentation: schemas.ProjectDocumentation, db: Session = Depends(get_db)):
+    # Backend does not check which user is currently logged in, since there is no requirement for role checking here.
+    # Therefore, backend does not check if user is part of the project, so frontend must take care of that.
+
+    db_project = crud.get_project_by_id(db=db, identifier=projectId)
+    if not db_project:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    return crud.export_documentation(db_project=db_project)

@@ -427,3 +427,9 @@ def update_documentation(db: Session, documentation: schemas.ProjectDocumentatio
     db.refresh(db_project)
 
     return db_project.documentation
+
+
+def export_documentation(db_project: schemas.Project):
+    documentation = db_project.documentation
+
+    return documentation
