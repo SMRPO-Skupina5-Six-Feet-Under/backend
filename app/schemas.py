@@ -51,6 +51,7 @@ class Project(BaseModel):
     id: int
     name: str
     description: str
+    documentation: str
     isAlive: bool = True
     projectParticipants: List[ProjectParticipantsInput]
 
@@ -216,6 +217,13 @@ class Message(BaseModel):
 
 class MessageInput(BaseModel):
     content: str
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectDocumentation(BaseModel):
+    text: str
 
     class Config:
         orm_mode = True
