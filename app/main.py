@@ -1117,6 +1117,12 @@ async def worktime_task(taskId: int, workTime: schemas.WorkTimeInput, db: Sessio
     if not db_task.hasAssigneeConfirmed:
         raise HTTPException(status_code=400, detail="You have to confirm the task first until you can log time.")
 
+    if workTime.timeDone <= 0:
+        raise HTTPException(status_code=400, detail="Work time must be a positive number.")
+
+    if workTime.timeRemainingEstimate < 0:
+        raise HTTPException(status_code=400, detail="Remaining estimate time must be > 0.")
+
     response = crud.update_or_insert_worktime(db=db, taskId=taskId, userId=db_user_data.id, workTime=workTime)
 
     if workTime.timeRemainingEstimate == 0:
