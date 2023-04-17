@@ -47,6 +47,7 @@ class Sprint(Base):
     velocity = Column(Float)
 
     projectId = Column(Integer, ForeignKey("project.id"))
+    stories = relationship("Story", back_populates="sprint") #da lahko do zgodb dostopamo prek sprinta (a rabmo to?)
 
 
 class Story(Base):
@@ -55,12 +56,14 @@ class Story(Base):
     # ======================== atributi ========================
     id = Column(Integer, primary_key=True, index=True)  # ID zgodbe
 
-    name = Column(String)               # ime zgodbe
-    storyDescription = Column(String)   # opis zgodbe
-    priority = Column(String)           # prioriteta zgodbe  # TODO Must have, Should have, Could have, Won't have now
-    businessValue = Column(Integer)     # poslovna vrednost zgodbe
-    timeEstimate = Column(Integer)      # time estimate zgodbe
-    isDone = Column(Boolean)            # ce je koncana nastavi na TRUE
+    name = Column(String)                   # ime zgodbe
+    storyDescription = Column(String)       # opis zgodbe
+    priority = Column(String)               # prioriteta zgodbe  # TODO Must have, Should have, Could have, Won't have now
+    businessValue = Column(Integer)         # poslovna vrednost zgodbe
+    timeEstimate = Column(Integer)          # time estimate zgodbe
+    isDone = Column(Boolean)                # ce je koncana nastavi na TRUE
+    isActive = Column(Boolean)              # ce je aktivna nastavi na TRUE
+    timeEstimateOriginal = Column(Integer)  # originalno nastavljen time estimate
     
     # ================= relacije/atrbuti drugje ==================
     # sprejemni testi
@@ -75,7 +78,7 @@ class Story(Base):
     # sprint = relationship("Sprint", back_populates="stories")     #TODO popravi back_populates na to kar je v sprintu
 
     # TODO povezava z nalogami
-    # subtasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v nalogah
+    tasks = relationship("Task", back_populates="story")     #TODO popravi back_populates na to kar je v nalogah
 
 
 class AcceptenceTest(Base):
@@ -103,6 +106,7 @@ class Task(Base):
     isDone = Column(Boolean, default=False)
 
     storyId = Column(Integer, ForeignKey("story.id"))
+    story = relationship("Story", back_populates="tasks") #da lahko do storyja dostopamo preko taska
 
 
 class WorkTime(Base):

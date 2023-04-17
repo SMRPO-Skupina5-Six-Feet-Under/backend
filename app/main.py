@@ -612,6 +612,51 @@ async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session =
 
     return crud.update_story_isDone(db=db, story=story, story_id=id)
 
+# update only timeEstiamte of story
+@app.put("/story/{id}/timeEstimate", response_model=schemas.Story, tags=["Stories"])
+async def update_story_timeEstimate(id: int, story_time: schemas.StoryUpdateTime, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    
+    # check if user is logged in
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
+    # check if story with given id exists
+    db_story = crud.get_story_by_id(db, story_id=id)
+    if db_story is None:
+        raise HTTPException(status_code=404, detail="Story does not exist")
+
+    #get user data 
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    #change the time estimate only if the user is Scrum Master
+    is_user_sm = False
+    for role in db_user_project_role:
+        if role.roleID == 2:
+            is_user_sm = True
+            break
+    
+    if not is_user_sm:
+        raise HTTPException(status_code=400, detail="Currently logged user is not Scrum Master.")
+    
+    # prevent changing the time estiamte if story is already part of a sprint
+    if db_story.sprint_id is not None:
+        raise HTTPException(status_code=400, detail="Story is already part of a sprint.")
+    
+    # update the time estimate
+    db_story.timeEstimate = story_time.timeEstimate
+
+    # if timeEstimateOriginal is NONE, set it to the same value as timeEstimate
+    if db_story.timeEstimateOriginal is None:
+        db_story.timeEstimateOriginal = db_story.timeEstimate
+
+    return crud.update_story_timeEstimate(db=db, story=db_story, story_id=id)
 
 @app.delete("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def delete_story(id: int, db: Session = Depends(get_db)):

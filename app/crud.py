@@ -326,6 +326,22 @@ def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
 
     return db_new_story
 
+# update only time estiamte on story
+def update_story_time_estimate(db: Session, story: schemas.Story, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    # posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
+
+    # zapoomni si začetni čas ko je čas prvič nastavljen
+    if db_new_story.timeEstimateOriginal is None:
+        db_new_story.timeEstimateOriginal = db_new_story.timeEstimate
+    
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
 
 # delete story
 def delete_story(db: Session, story_id: int):
