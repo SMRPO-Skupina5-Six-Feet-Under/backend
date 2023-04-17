@@ -204,6 +204,27 @@ class TaskInput(BaseModel):
         orm_mode = True
 
 
+class WorkTime(BaseModel):
+    id: int
+    taskId: int
+    userId: int
+    date: datetime
+    timeDone: int
+    timeRemainingEstimate: int
+
+    class Config:
+        orm_mode = True
+
+
+class WorkTimeInput(BaseModel):
+    date: datetime
+    timeDone: int
+    timeRemainingEstimate: int
+
+    class Config:
+        orm_mode = True
+
+
 class Message(BaseModel):
     id: int
     content: str

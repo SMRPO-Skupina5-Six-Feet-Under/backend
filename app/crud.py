@@ -1,7 +1,7 @@
 import datetime
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from app import models, schemas
 
 
@@ -384,6 +384,7 @@ def update_task_assignee_done(db: Session, taskId: int):
     db_task.assigneeUserId = None
     db_task.hasAssigneeConfirmed = False
     db_task.isDone = True
+    db_task.isActive = False
     db.commit()
     db.refresh(db_task)
     return db_task
@@ -427,5 +428,88 @@ def update_documentation(db: Session, documentation: schemas.ProjectDocumentatio
     db_project.documentation = documentation.text
     db.commit()
     db.refresh(db_project)
-
     return db_project.documentation
+
+
+def set_active_task(db: Session, db_task: models.Task):
+    db_task.isActive = True
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def set_inactive_task(db: Session, db_task: models.Task):
+    db_task.isActive = False
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def insert_work_progress(db: Session, taskId: int):
+    timestamp = datetime.datetime.now()
+    db_work_progress = models.WorkProgress(startTimestamp=timestamp, taskId=taskId)
+    db.add(db_work_progress)
+    db.commit()
+    db.refresh(db_work_progress)
+
+
+def get_work_progress(db: Session, taskId: int):
+    stop_time = datetime.datetime.now()
+    start_time = db.query(models.WorkProgress).filter(models.WorkProgress.taskId == taskId).order_by(models.WorkProgress.startTimestamp.desc()).first()
+
+    difference_in_hours = int(abs((stop_time - start_time).total_seconds() / 3600))
+    if difference_in_hours <= 0:
+        difference_in_hours = 1
+
+    return difference_in_hours
+
+
+def list_timelogs_by_task_id(db: Session, taskId: int, skip: int = 0, limit: int = 1000):
+    return db.query(models.WorkTime).filter(models.WorkTime.taskId == taskId).order_by(models.WorkTime.date.desc()).offset(skip).limit(limit).all()
+
+
+def list_timelogs_by_task_id_by_user_id(db: Session, taskId: int, userId: int, skip: int = 0, limit: int = 1000):
+    return db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId)).order_by(models.WorkTime.date.desc()).offset(skip).limit(limit).all()
+
+
+def update_or_insert_worktime(db: Session, taskId: int, userId: int, workTime: schemas.WorkTimeInput):
+    db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, models.WorkTime.date.date() == workTime.date.date())).first()
+
+    if not db_worktime:
+        # Insert new entry under selected date.
+        db_worktime = models.WorkTime(date=workTime.date, timeDone=workTime.timeDone, timeRemainingEstimate=workTime.timeRemainingEstimate, userId=userId, taskId=taskId)
+        db.add(db_worktime)
+        db.commit()
+        db.refresh(db_worktime)
+    else:
+        # Update entry under selected date.
+        db_worktime.timeDone = workTime.timeDone
+        db_worktime.timeRemainingEstimate = workTime.timeRemainingEstimate
+        db.commit()
+        db.refresh(db_worktime)
+
+    return db_worktime
+
+
+def update_worktime(db: Session, taskId: int, taskEstimate: int, userId: int, workDone: int):
+    timestamp = datetime.datetime.now()
+    db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, models.WorkTime.date.date() == timestamp.date())).first()
+
+    if not db_worktime:
+        # Insert new entry under selected date.
+        remaining_estimate_calculation = taskEstimate - workDone
+        if remaining_estimate_calculation < 0:
+            remaining_estimate_calculation = 0
+
+        db_worktime = models.WorkTime(date=timestamp, timeDone=workDone, timeRemainingEstimate=remaining_estimate_calculation, userId=userId, taskId=taskId)
+        db.add(db_worktime)
+        db.commit()
+        db.refresh(db_worktime)
+    else:
+        # Update entry under selected date.
+        db_current_worktime_calculation = db_worktime.timeDone + workDone
+        db_worktime.timeDone = db_current_worktime_calculation
+        db.commit()
+        db.refresh(db_worktime)
+
+    return db_worktime

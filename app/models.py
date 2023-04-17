@@ -117,6 +117,15 @@ class WorkTime(Base):
     taskId = Column(Integer, ForeignKey("task.id"))
 
 
+class WorkProgress(Base):
+    __tablename__ = "work_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    startTimestamp = Column(DateTime)
+
+    taskId = Column(Integer, ForeignKey("task.id"))
+
+
 class Message(Base):
     __tablename__ = "message"
 

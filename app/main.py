@@ -979,3 +979,199 @@ async def import_project_documentation(file: UploadFile = File(...)):
     text = await file.read()
     text_data = text.decode()
     return text_data
+
+
+@app.put("/task/start/{taskId}", response_model=schemas.Task, tags=["Tasks - Work time"])
+async def start_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId != 3:
+        raise HTTPException(status_code=400, detail="Only developers can start working on tasks.")
+
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="This task is already finished (marked as done).")
+
+    if db_task.isActive:
+        raise HTTPException(status_code=400, detail="This task has already been started.")
+
+    if db_task.assigneeUserId != db_user_data.id:
+        raise HTTPException(status_code=400, detail="This task is assigned to other user.")
+
+    if not db_task.hasAssigneeConfirmed:
+        raise HTTPException(status_code=400, detail="You have to confirm the task first until you start making progress.")
+
+    crud.insert_work_progress(db=db, taskId=taskId)
+
+    return crud.set_active_task(db=db, db_task=db_task)
+
+
+@app.put("/task/stop/{taskId}", response_model=schemas.WorkTime, tags=["Tasks - Work time"])
+async def stop_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Automatically marks task as done and marks as inactive (same thing as endpoint for doing this explicitly), if remaining estimate is calculated to be 0.
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId != 3:
+        raise HTTPException(status_code=400, detail="Only developers can stop working on tasks.")
+
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="This task is already finished (marked as done).")
+
+    if not db_task.isActive:
+        raise HTTPException(status_code=400, detail="This task hasn't been started yet, so it cannot be stopped.")
+
+    if db_task.assigneeUserId != db_user_data.id:
+        raise HTTPException(status_code=400, detail="This task is assigned to other user.")
+
+    if not db_task.hasAssigneeConfirmed:
+        raise HTTPException(status_code=400, detail="You have to confirm the task first until you stop making progress.")
+
+    _ = crud.set_inactive_task(db=db, db_task=db_task)
+    work_done = crud.get_work_progress(db=db, taskId=taskId)
+
+    response = crud.update_worktime(db=db, taskId=taskId, taskEstimate=db_task.timeEstimate, userId=db_user_data.id, workDone=work_done)
+
+    if response.timeRemainingEstimate == 0:
+        _ = crud.update_task_assignee_done(db=db, taskId=taskId)
+
+    return response
+
+
+@app.put("/task/worktime/{taskId}", response_model=schemas.WorkTime, tags=["Tasks - Work time"])
+async def worktime_task(taskId: int, workTime: schemas.WorkTimeInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Automatically recognizes whether the worklog has to be added under new date or updated under existing date.
+    # Automatically marks task as done and marks as inactive (same thing as endpoint for doing this explicitly), if remaining estimate is put to 0.
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    if db_user_project_role.roleId != 3:
+        raise HTTPException(status_code=400, detail="Only developers can log time on tasks.")
+
+    if db_task.isDone:
+        raise HTTPException(status_code=400, detail="This task is already finished (marked as done).")
+
+    if db_task.assigneeUserId != db_user_data.id:
+        raise HTTPException(status_code=400, detail="This task is assigned to other user.")
+
+    if not db_task.hasAssigneeConfirmed:
+        raise HTTPException(status_code=400, detail="You have to confirm the task first until you can log time.")
+
+    response = crud.update_or_insert_worktime(db=db, taskId=taskId, userId=db_user_data.id, workTime=workTime)
+
+    if workTime.timeRemainingEstimate == 0:
+        _ = crud.update_task_assignee_done(db=db, taskId=taskId)
+
+    return response
+
+
+@app.get("/task/worktime/all/{taskId}", response_model=schemas.WorkTime, tags=["Tasks - Work time"])
+async def list_worktime_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Shows all worklog entries of selected task.
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    return crud.list_timelogs_by_task_id(db=db, taskId=taskId)
+
+
+@app.get("/task/worktime/my/{taskId}", response_model=schemas.WorkTime, tags=["Tasks - Work time"])
+async def list_my_worktime_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # Only shows worklog entries for currently logged user.
+
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    db_task = crud.get_task_by_id(db=db, taskId=taskId)
+    if not db_task:
+        raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
+
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_story = crud.get_story_by_id(db=db, story_id=db_task.storyId)
+
+    if not db_story:
+        raise HTTPException(status_code=400, detail="Story with identifier, stated in selected task, does not exist.")
+
+    db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    return crud.list_timelogs_by_task_id_by_user_id(db=db, taskId=taskId, userId=db_user_data.id)
