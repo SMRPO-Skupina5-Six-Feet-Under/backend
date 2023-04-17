@@ -343,7 +343,7 @@ def update_story_time_estimate(db: Session, story: schemas.Story, story_id: int)
     return db_new_story
 
 
-# delete story
+# delete story (should this be soft delete?)
 def delete_story(db: Session, story_id: int):
     db_story = db.query(models.Story).filter(models.Story.id == story_id).first()
     db.delete(db_story)

@@ -658,11 +658,55 @@ async def update_story_timeEstimate(id: int, story_time: schemas.StoryUpdateTime
 
     return crud.update_story_timeEstimate(db=db, story=db_story, story_id=id)
 
+
+#delete za story
 @app.delete("/story/{id}", response_model=schemas.Story, tags=["Stories"])
-async def delete_story(id: int, db: Session = Depends(get_db)):
+async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # check if user is logged in
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
+    # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #get user data
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    #check if user is part of the project
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    
+    #check if user is Scrum Master or Product Owner
+    is_user_sm_po = False
+    for role in db_user_project_role:
+        if role.roleID == 2 or role.roleID == 1:
+            is_user_sm_po = True
+            break
+    if not is_user_sm_po:
+        raise HTTPException(status_code=400, detail="Currently logged user is not Scrum Master or Product Owner.")
+    
+    #check if story is part of a sprint
+    if db_story.sprint_id is not None:
+        raise HTTPException(status_code=400, detail="Can't delete story that is part of a sprint.")
+    
+    #check if story has tasks
+    db_story_tasks = crud.get_all_story_tasks(db=db, storyId=id)
+    if db_story_tasks:
+        #check if tasks have any worklogs
+        for task in db_story_tasks:
+            db_task_worklogs = crud.get_all_task_worklogs(db=db, taskId=task.id)
+            if db_task_worklogs:
+                raise HTTPException(status_code=400, detail="Can't delete story that has tasks with worklogs.")
+
+    #check that story is not done
+    if db_story.isDone:
+        raise HTTPException(status_code=400, detail="Can't delete story that is done.")
     
     return crud.delete_story(db=db, story_id=id)
 
