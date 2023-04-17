@@ -1,7 +1,7 @@
 import datetime
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, cast, Date
 from app import models, schemas
 
 
@@ -457,7 +457,7 @@ def get_work_progress(db: Session, taskId: int):
     stop_time = datetime.datetime.now()
     start_time = db.query(models.WorkProgress).filter(models.WorkProgress.taskId == taskId).order_by(models.WorkProgress.startTimestamp.desc()).first()
 
-    difference_in_hours = int(abs((stop_time - start_time).total_seconds() / 3600))
+    difference_in_hours = int(abs((stop_time - start_time.startTimestamp).total_seconds() / 3600))
     if difference_in_hours <= 0:
         difference_in_hours = 1
 
@@ -473,7 +473,7 @@ def list_timelogs_by_task_id_by_user_id(db: Session, taskId: int, userId: int, s
 
 
 def update_or_insert_worktime(db: Session, taskId: int, userId: int, workTime: schemas.WorkTimeInput):
-    db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, models.WorkTime.date.date() == workTime.date.date())).first()
+    db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, cast(models.WorkTime.date, Date) == workTime.date.date())).first()
 
     if not db_worktime:
         # Insert new entry under selected date.
@@ -493,7 +493,7 @@ def update_or_insert_worktime(db: Session, taskId: int, userId: int, workTime: s
 
 def update_worktime(db: Session, taskId: int, taskEstimate: int, userId: int, workDone: int):
     timestamp = datetime.datetime.now()
-    db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, models.WorkTime.date.date() == timestamp.date())).first()
+    db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, cast(models.WorkTime.date, Date) == timestamp.date())).first()
 
     if not db_worktime:
         # Insert new entry under selected date.

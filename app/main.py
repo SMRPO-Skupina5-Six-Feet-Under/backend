@@ -1083,6 +1083,8 @@ async def stop_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJ
 async def worktime_task(taskId: int, workTime: schemas.WorkTimeInput, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # Automatically recognizes whether the worklog has to be added under new date or updated under existing date.
     # Automatically marks task as done and marks as inactive (same thing as endpoint for doing this explicitly), if remaining estimate is put to 0.
+    # We assume that frontend serves valid date if it is the first entry.
+    # Backend doesn't check if the date is in valid range (ordered), it just recognizes whether to update worklog entry or add a new one.
 
     try:
         Authorize.jwt_required()
@@ -1131,7 +1133,7 @@ async def worktime_task(taskId: int, workTime: schemas.WorkTimeInput, db: Sessio
     return response
 
 
-@app.get("/task/worktime/all/{taskId}", response_model=schemas.WorkTime, tags=["Tasks - Work time"])
+@app.get("/task/worktime/all/{taskId}", response_model=List[schemas.WorkTime], tags=["Tasks - Work time"])
 async def list_worktime_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # Shows all worklog entries of selected task.
 
@@ -1159,7 +1161,7 @@ async def list_worktime_task(taskId: int, db: Session = Depends(get_db), Authori
     return crud.list_timelogs_by_task_id(db=db, taskId=taskId)
 
 
-@app.get("/task/worktime/my/{taskId}", response_model=schemas.WorkTime, tags=["Tasks - Work time"])
+@app.get("/task/worktime/my/{taskId}", response_model=List[schemas.WorkTime], tags=["Tasks - Work time"])
 async def list_my_worktime_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # Only shows worklog entries for currently logged user.
 
