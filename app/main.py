@@ -789,7 +789,9 @@ async def done_task(taskId: int, db: Session = Depends(get_db), Authorize: AuthJ
     if db_task.isDone:
         raise HTTPException(status_code=400, detail="This task has already been marked as done.")
 
-    # TODO: Additional checks are needed, if there is any time logged to selected task (it must be).
+    if not crud.check_any_time_logged(db=db, taskId=taskId):
+        raise HTTPException(status_code=400, detail="There must be at least some work logged, in order to mark task as done.")
+
     return crud.update_task_assignee_done(db=db, taskId=taskId)
 
 
@@ -884,7 +886,9 @@ async def delete_task(taskId: int, db: Session = Depends(get_db), Authorize: Aut
     if db_task.hasAssigneeConfirmed:
         raise HTTPException(status_code=400, detail="Accepted tasks cannot be deleted.")
 
-    # TODO: Add another check for logged hours (task cannot be deleted if it has any logged hours - happens in case when assignee is null).
+    if crud.check_any_time_logged(db=db, taskId=taskId):
+        raise HTTPException(status_code=400, detail="Task cannot be deleted if it has any logged work.")
+
     return crud.delete_task(db=db, taskId=taskId)
 
 

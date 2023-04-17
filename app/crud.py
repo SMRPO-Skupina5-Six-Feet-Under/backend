@@ -513,3 +513,10 @@ def update_worktime(db: Session, taskId: int, taskEstimate: int, userId: int, wo
         db.refresh(db_worktime)
 
     return db_worktime
+
+
+def check_any_time_logged(db: Session, taskId: int):
+    db_worktime = db.query(models.WorkTime).filter(models.WorkTime.taskId == taskId).first()
+    if not db_worktime:
+        return False
+    return True
