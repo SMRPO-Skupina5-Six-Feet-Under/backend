@@ -274,8 +274,8 @@ def get_all_stories(db: Session, skip: int = 0, limit: int = 100):
 
 
 # get za vse zgodbe v projektu
-def get_all_stories_in_project(db: Session, project_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Story).filter(models.Story.projectId == project_id).offset(skip).limit(limit).all()
+def get_all_stories_in_project(db: Session, projectId: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.projectId == projectId).offset(skip).limit(limit).all()
 
 
 # get za vse zgodbe v projektu z določeno prioriteto

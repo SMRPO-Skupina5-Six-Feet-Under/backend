@@ -486,7 +486,7 @@ async def read_story(id: int, db: Session = Depends(get_db)):
     
     return db_story
 
-
+#create story
 @app.post("/story", response_model=schemas.Story, tags=["Stories"])
 async def create_story(story: schemas.StoryCreate, tests: List[schemas.AcceptenceTestCreate], db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # check if user is logged in
@@ -513,6 +513,7 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
         raise HTTPException(status_code=400, detail="Currently logged user must be product owner or scrum master at this project, in order to perform this action.")
 
     # check if story with same name already exists
+    # TODO check for lower case
     db_story = crud.get_story_by_name(db, name=story.name)
     if db_story:
         raise HTTPException(status_code=400, detail="Story already exists")
@@ -585,7 +586,7 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     all_stories_in_project = crud.get_all_stories_in_project(db, projectId=story.projectId)
     for story_in_proj in all_stories_in_project:
         if story_in_proj.name.lower() == story.name.lower() and story_in_proj.id != id:
-            raise HTTPException(status_code=400, detail="Story with given name already existsin this project")
+            raise HTTPException(status_code=400, detail="Story with given name already exists in this project")
     
     # check that name is not empty string or "string" use old name if it is
     if story.name == "" or story.name == "string":
@@ -606,7 +607,7 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     # create any new acceptence tests
     # TODO test this if no new tests are given
     for test in tests:
-        if test.description is None:
+        if test.description is None or test.description == "":
             raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
     
         test = crud.create_test(db=db, test=test, story_id=story.id)
@@ -666,6 +667,11 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
     # check that story has non-zero time estimate
     if db_story.timeEstimateOriginal == 0 or db_story.timeEstimateOriginal is None:
         raise HTTPException(status_code=400, detail="Story with zero or no time estimate cannot be assigned to a sprint.")
+    
+    #check that story and sprint are in the same project
+    db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
+    if db_story.projectId != db_sprint.projectId:
+        raise HTTPException(status_code=400, detail="Story and sprint must be in the same project.")
 
     # check that sprint with given id exists
     db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
@@ -736,7 +742,7 @@ async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Sess
     if db_story.timeEstimateOriginal is None:
         db_story.timeEstimateOriginal = db_story.timeEstimate
 
-    return crud.update_story_timeEstimate(db=db, story=db_story, story_id=id)
+    return crud.update_story_time_estimate(db=db, story=db_story, story_id=id)
 
 
 #delete za story
