@@ -513,10 +513,15 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
         raise HTTPException(status_code=400, detail="Currently logged user must be product owner or scrum master at this project, in order to perform this action.")
 
     # check if story with same name already exists
-    # TODO check for lower case
-    db_story = crud.get_story_by_name(db, name=story.name)
-    if db_story:
-        raise HTTPException(status_code=400, detail="Story already exists")
+    # check for lower case and TODO spaces? 
+    all_stories_in_project = crud.get_all_stories_in_project(db, projectId=story.projectId)
+    for story_in_proj in all_stories_in_project:
+        if story_in_proj.name.lower() == story.name.lower() and story_in_proj.id != id:
+            raise HTTPException(status_code=400, detail="Story with given name already exists in this project")
+    
+    # db_story = crud.get_story_by_name(db, name=story.name)
+    # if db_story:
+    #     raise HTTPException(status_code=400, detail="Story already exists")
     
     # check if project with given id exists
     db_project = crud.get_project_by_id(db=db, identifier=story.projectId)
@@ -605,7 +610,6 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
         raise HTTPException(status_code=400, detail="Business value must be in range 1-10.")
     
     # create any new acceptence tests
-    # TODO test this if no new tests are given
     for test in tests:
         if test.description is None or test.description == "":
             raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
