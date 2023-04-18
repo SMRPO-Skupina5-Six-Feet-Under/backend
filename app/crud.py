@@ -274,8 +274,8 @@ def get_all_stories(db: Session, skip: int = 0, limit: int = 100):
 
 
 # get za vse zgodbe v projektu
-def get_all_stories_in_project(db: Session, project_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Story).filter(models.Story.projectId == project_id).offset(skip).limit(limit).all()
+def get_all_stories_in_project(db: Session, projectId: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.projectId == projectId).offset(skip).limit(limit).all()
 
 
 # get za vse zgodbe v projektu z določeno prioriteto
@@ -326,8 +326,24 @@ def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
 
     return db_new_story
 
+# update only time estiamte on story
+def update_story_time_estimate(db: Session, story: schemas.Story, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
 
-# delete story
+    # posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
+
+    # zapoomni si začetni čas ko je čas prvič nastavljen
+    if db_new_story.timeEstimateOriginal is None:
+        db_new_story.timeEstimateOriginal = db_new_story.timeEstimate
+    
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+
+# delete story (should this be soft delete?)
 def delete_story(db: Session, story_id: int):
     db_story = db.query(models.Story).filter(models.Story.id == story_id).first()
     db.delete(db_story)

@@ -164,6 +164,10 @@ class StoryUpdate(StoryBase):
     sprint_id: int = None
     isDone: bool = False
 
+##for only updating the time estiamte
+class StoryUpdateTime(BaseModel):
+    timeEstimate: int
+
 
 class Story(StoryBase):
     id: int
@@ -172,6 +176,7 @@ class Story(StoryBase):
     isDone: bool = False
 
     acceptenceTests: list[AcceptenceTest] = []
+    timeEstimateOriginal: int = None
 
     # TODO povezava z nalogami
     # subtasks: List["Task"] = []
