@@ -831,7 +831,7 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
         raise HTTPException(status_code=400, detail="Can't delete story that is done.")
     
     # delete acceptanse tests for story
-    db_story_tests = crud.get_all_tests_in_story(db=db, storyId=id)
+    db_story_tests = crud.get_all_tests_in_story(db=db, story_id=id)
     for test in db_story_tests:
         crud.delete_test(db=db, testId=test.id)
     
