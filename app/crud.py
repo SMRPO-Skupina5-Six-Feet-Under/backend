@@ -378,8 +378,8 @@ def update_test(db: Session, test: schemas.AcceptenceTest, test_id: int):
     return db_new_test
 
 # delete test
-def delete_test(db: Session, test_id: int):
-    db_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == test_id).first()
+def delete_test(db: Session, testId: int):
+    db_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == testId).first()
     db.delete(db_test)
     db.commit()
     return db_test
