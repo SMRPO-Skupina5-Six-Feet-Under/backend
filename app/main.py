@@ -568,7 +568,7 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
 
     # check if user is part of the project
-    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=story.projectId, userId=db_user_data.id)
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
     if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
@@ -606,7 +606,7 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
         story.storyDescription = db_story.storyDescription
 
     # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have this time"
-    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't at have this time":
+    if story.priority != "Must have" or story.priority != "Should have" or story.priority != "Could have" or story.priority != "Won't have at this time":
         raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have at this time'.")
     
     # check tha business value is within range 1-10
@@ -807,7 +807,7 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
     #check if user is Scrum Master or Product Owner
     is_user_sm_po = False
     for role in db_user_project_roles:
-        if role.roleID == 2 or role.roleID == 1:
+        if role.roleId == 2 or role.roleId == 1:
             is_user_sm_po = True
             break
     if not is_user_sm_po:
