@@ -561,6 +561,7 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     except:
         raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
 
+    #user data from token
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
 
@@ -602,8 +603,8 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
         story.storyDescription = db_story.storyDescription
 
     # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have this time"
-    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't have this time":
-        raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have this time'.")
+    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't at have this time":
+        raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have at this time'.")
     
     # check tha business value is within range 1-10
     if story.businessValue < 1 or story.businessValue > 10:
@@ -616,6 +617,32 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     
         test = crud.create_test(db=db, test=test, story_id=story.id)
     
+    # update the story
+
+    #update the acceptence tests
+    #check if tests in story have empty description
+    for test in story.acceptenceTests:
+        if test.description is None or test.description == "":
+            raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
+
+    # get all tests in database for story
+    db_tests = crud.get_all_tests_in_story(db=db, story_id=id)
+    #update the test 
+    for db_test in db_tests:
+        # update test in database if it is in story object
+        for test in story.acceptenceTests:
+            if test.id == db_test.id:
+                #update the test
+                test = crud.update_test(db=db, test=test, test_id=test.id)
+                break
+    
+    # update the time estimate
+    db_story.timeEstimate = story.timeEstimate
+
+    # if timeEstimateOriginal is NONE, set it to the same value as timeEstimate
+    if db_story.timeEstimateOriginal is None or db_story.timeEstimateOriginal == 0:
+        db_story.timeEstimateOriginal = db_story.timeEstimate
+
     # prevent changing projectId
     story.projectId = db_story.projectId
 
@@ -650,7 +677,7 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
     #get user data
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
-    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_sprint.projectId, userId=db_user_data.id)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
 
     # check if user is part of the project
     if not db_user_project_role:

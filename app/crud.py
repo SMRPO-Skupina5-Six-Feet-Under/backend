@@ -361,6 +361,23 @@ def create_test(db: Session, test: schemas.AcceptenceTestCreate, story_id: int):
     return db_test
 
 
+# get all tests of a story
+def get_all_tests_in_story(db: Session, story_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.AcceptenceTest).filter(models.AcceptenceTest.storyId == story_id).offset(skip).limit(limit).all()
+
+# update test
+def update_test(db: Session, test: schemas.AcceptenceTest, test_id: int):
+    db_new_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == test_id).first()
+
+    # posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_test.description = db_new_test.description if test.description is None else test.description
+
+    db.commit()
+    db.refresh(db_new_test)
+
+    return db_new_test
+
+
 def create_task(db: Session, task: schemas.TaskInput, storyId: int):
     db_task = models.Task(name=task.name, description=task.description, timeEstimate=task.timeEstimate, assigneeUserId=task.assigneeUserId, storyId=storyId)
     db.add(db_task)
