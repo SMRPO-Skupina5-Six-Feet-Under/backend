@@ -605,8 +605,8 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     if story.storyDescription == "string" or story.storyDescription == "" or story.storyDescription is None:
         story.storyDescription = db_story.storyDescription
 
-    # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have this time"
-    if story.priority != "Must have" or story.priority != "Should have" or story.priority != "Could have" or story.priority != "Won't have at this time":
+    # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have at this time"
+    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't have at this time":
         raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have at this time'.")
     
     # check tha business value is within range 1-10
