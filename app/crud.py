@@ -377,6 +377,13 @@ def update_test(db: Session, test: schemas.AcceptenceTest, test_id: int):
 
     return db_new_test
 
+# delete test
+def delete_test(db: Session, test_id: int):
+    db_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == test_id).first()
+    db.delete(db_test)
+    db.commit()
+    return db_test
+
 
 def create_task(db: Session, task: schemas.TaskInput, storyId: int):
     db_task = models.Task(name=task.name, description=task.description, timeEstimate=task.timeEstimate, assigneeUserId=task.assigneeUserId, storyId=storyId)
