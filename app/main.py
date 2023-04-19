@@ -499,7 +499,9 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     db_user_project_roles = crud.get_all_user_roles(db=db, projectId=story.projectId, userId=db_user_data.id)
-    if not db_user_project_roles:
+
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
     
     # check if user is product owner or scrum master
@@ -567,7 +569,8 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
 
     # check if user is part of the project
     db_user_project_roles = crud.get_all_user_roles(db=db, projectId=story.projectId, userId=db_user_data.id)
-    if not db_user_project_roles:
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
     
     # check if user is product owner or scrum master
@@ -748,13 +751,14 @@ async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Sess
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
 
     if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
 
     #change the time estimate only if the user is Scrum Master
     is_user_sm = False
-    for role in db_user_project_role:
+    for role in db_user_project_roles:
         if role.roleID == 2:
             is_user_sm = True
             break
@@ -793,6 +797,7 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
     #get user data
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
 
     #check if user is part of the project
@@ -801,7 +806,7 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
     
     #check if user is Scrum Master or Product Owner
     is_user_sm_po = False
-    for role in db_user_project_role:
+    for role in db_user_project_roles:
         if role.roleID == 2 or role.roleID == 1:
             is_user_sm_po = True
             break
