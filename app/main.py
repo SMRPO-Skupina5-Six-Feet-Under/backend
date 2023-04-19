@@ -820,11 +820,11 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
     #check if story has tasks
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=id)
     if db_story_tasks:
-        #check if tasks have any worklogs
+        #check if tasks have any time logged
         for task in db_story_tasks:
-            db_task_worklogs = crud.get_all_task_worklogs(db=db, taskId=task.id)
-            if db_task_worklogs:
-                raise HTTPException(status_code=400, detail="Can't delete story that has tasks with worklogs.")
+            db_task_time = crud.check_any_time_logged(db=db, taskId=task.id)
+            if db_task_time:
+                raise HTTPException(status_code=400, detail="Can't delete story that has tasks with time logged.")
 
     #check that story is not done
     if db_story.isDone:
