@@ -152,6 +152,7 @@ class StoryBase(BaseModel):
     priority: str
     businessValue: int
     timeEstimate: int
+    timeEstimateOriginal: int
 
     projectId: int
 

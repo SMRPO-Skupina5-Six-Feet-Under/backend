@@ -534,6 +534,10 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     if tests is None:
         raise HTTPException(status_code=400, detail="Acceptence tests cannot be empty.")
     
+    #check if time estiamte is not 0 or none
+    if story.timeEstimate > 0 and story.timeEstimate is not None: 
+        story.timeEstimateOriginal = story.timeEstimate
+    
     # create the story
     new_story = crud.create_story(db=db, story=story)
 
@@ -699,7 +703,7 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
         raise HTTPException(status_code=400, detail="Story already assigned to a sprint.")
     
     # check that story has non-zero time estimate
-    if db_story.timeEstimateOriginal == 0 or db_story.timeEstimateOriginal is None:
+    if db_story.timeEstimate == 0 or db_story.timeEstimate is None:
         raise HTTPException(status_code=400, detail="Story with zero or no time estimate cannot be assigned to a sprint.")
     
     #check that story and sprint are in the same project
@@ -775,7 +779,7 @@ async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Sess
 
     # if timeEstimateOriginal is NONE, set it to the same value as timeEstimate
     if db_story.timeEstimateOriginal is None:
-        db_story.timeEstimateOriginal = db_story.timeEstimate
+        db_story.timeEstimateOriginal = story_time.timeEstimate
 
     return crud.update_story_time_estimate(db=db, story=db_story, story_id=id)
 

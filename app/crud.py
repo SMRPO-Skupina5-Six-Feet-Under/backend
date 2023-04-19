@@ -261,7 +261,7 @@ def get_story_by_name(db: Session, name: str):
 
 # ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, projectId=story.projectId, isDone=False)
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, timeEstimateOriginal=story.timeEstimateOriginal , projectId=story.projectId, isDone=False)
     db.add(db_story)
     db.commit()
     db.refresh(db_story)
@@ -294,6 +294,11 @@ def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int)
     db_new_story.businessValue = db_new_story.businessValue if story.businessValue is None else story.businessValue
     db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
     db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id is None else story.sprint_id
+
+
+    # zapoomni si začetni čas ko je čas prvič nastavljen
+    if db_new_story.timeEstimateOriginal is None:
+        db_new_story.timeEstimateOriginal = db_new_story.timeEstimate
 
     db.commit()
     db.refresh(db_new_story)
