@@ -361,6 +361,10 @@ def get_task_by_id(db: Session, taskId: int):
     return db.query(models.Task).filter(models.Task.id == taskId).first()
 
 
+def get_all_my_tasks(db: Session, userId: int):
+    return db.query(models.Task).filter(models.Task.assigneeUserId == userId).all()
+
+
 def update_task_assignee_confirm(db: Session, taskId: int, userId: int):
     db_task = db.query(models.Task).filter(models.Task.id == taskId).first()
     db_task.assigneeUserId = userId

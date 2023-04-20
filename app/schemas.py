@@ -187,8 +187,16 @@ class Task(BaseModel):
     assigneeUserId: int = None
     hasAssigneeConfirmed: bool = False
     isActive: bool = False
-    isFinished: bool = False
+    isDone: bool = False
     storyId: int
+
+    class Config:
+        orm_mode = True
+
+
+class TaskWithRemainingEstimate(BaseModel):
+    task: Task
+    timeRemainingEstimate: Optional[int] = None
 
     class Config:
         orm_mode = True
