@@ -891,15 +891,12 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
         raise HTTPException(status_code=400, detail="Cannot add new task under story of currently not active sprint.")
 
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=storyId)
-    sum_time_tasks = 0
     for current_task in db_story_tasks:
-        sum_time_tasks += current_task.timeEstimate
         if current_task.name.lower() == task.name.lower():
             raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
 
-    upper_bound = (db_story.timeEstimate * 6) - sum_time_tasks
-    if not 0 < task.timeEstimate <= upper_bound:
-        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
+    if task.timeEstimate <= 0:
+        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number.")
 
     if task.assigneeUserId is not None:
         db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=task.assigneeUserId)
@@ -1053,16 +1050,13 @@ async def update_task(taskId: int, task: schemas.TaskInput, db: Session = Depend
             raise HTTPException(status_code=400, detail="Assignee cannot be edited if task is marked as accepted.")
 
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=db_story.id)
-    sum_time_tasks = 0
     for current_task in db_story_tasks:
-        sum_time_tasks += current_task.timeEstimate
         if current_task.name.lower() == task.name.lower():
             if db_task.name != task.name:
                 raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
 
-    upper_bound = (db_story.timeEstimate * 6) - sum_time_tasks
-    if not 0 < task.timeEstimate <= upper_bound:
-        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
+    if task.timeEstimate <= 0:
+        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number.")
 
     if task.assigneeUserId is not None:
         db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=task.assigneeUserId)
