@@ -152,6 +152,7 @@ class StoryBase(BaseModel):
     priority: str
     businessValue: int
     timeEstimate: int
+    timeEstimateOriginal: int
 
     projectId: int
 
@@ -164,6 +165,10 @@ class StoryUpdate(StoryBase):
     sprint_id: int = None
     isDone: bool = False
 
+##for only updating the time estiamte
+class StoryUpdateTime(BaseModel):
+    timeEstimate: int
+
 
 class Story(StoryBase):
     id: int
@@ -172,6 +177,7 @@ class Story(StoryBase):
     isDone: bool = False
 
     acceptenceTests: list[AcceptenceTest] = []
+    timeEstimateOriginal: int = None
 
     # TODO povezava z nalogami
     # subtasks: List["Task"] = []
@@ -186,8 +192,8 @@ class Task(BaseModel):
     timeEstimate: int
     assigneeUserId: int = None
     hasAssigneeConfirmed: bool = False
-    isActive: bool = False
     isDone: bool = False
+    isFinished: bool = False
     storyId: int
 
     class Config:

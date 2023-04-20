@@ -486,7 +486,7 @@ async def read_story(id: int, db: Session = Depends(get_db)):
     
     return db_story
 
-
+#create story
 @app.post("/story", response_model=schemas.Story, tags=["Stories"])
 async def create_story(story: schemas.StoryCreate, tests: List[schemas.AcceptenceTestCreate], db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     # check if user is logged in
@@ -499,7 +499,9 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     db_user_project_roles = crud.get_all_user_roles(db=db, projectId=story.projectId, userId=db_user_data.id)
-    if not db_user_project_roles:
+
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
     
     # check if user is product owner or scrum master
@@ -513,9 +515,15 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
         raise HTTPException(status_code=400, detail="Currently logged user must be product owner or scrum master at this project, in order to perform this action.")
 
     # check if story with same name already exists
-    db_story = crud.get_story_by_name(db, name=story.name)
-    if db_story:
-        raise HTTPException(status_code=400, detail="Story already exists")
+    # check for lower case and TODO spaces? 
+    all_stories_in_project = crud.get_all_stories_in_project(db, projectId=story.projectId)
+    for story_in_proj in all_stories_in_project:
+        if story_in_proj.name.lower() == story.name.lower() and story_in_proj.id != id:
+            raise HTTPException(status_code=400, detail="Story with given name already exists in this project")
+    
+    # db_story = crud.get_story_by_name(db, name=story.name)
+    # if db_story:
+    #     raise HTTPException(status_code=400, detail="Story already exists")
     
     # check if project with given id exists
     db_project = crud.get_project_by_id(db=db, identifier=story.projectId)
@@ -525,6 +533,10 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     # check if there is any tests
     if tests is None:
         raise HTTPException(status_code=400, detail="Acceptence tests cannot be empty.")
+    
+    #check if time estiamte is not 0 or none
+    if story.timeEstimate > 0 and story.timeEstimate is not None: 
+        story.timeEstimateOriginal = story.timeEstimate
     
     # create the story
     new_story = crud.create_story(db=db, story=story)
@@ -538,56 +550,167 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     
     return new_story
 
-
+#update story
 @app.put("/story/{id}", response_model=schemas.Story, tags=["Stories"])
-async def update_story(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+async def update_story(id: int, story: schemas.Story, tests: List[schemas.AcceptenceTestCreate], db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # All tests providet will be added to the story thus only new tests should be given to the function in tests parameter. 
+    # Old tests are already included in story object and MUST NOT be given to the function in tests parameter.
+    # SprintID CANNOT be changed here as story cant be aprt of a sprint in order to be updated. Change sprintID in sprint endpoint.
+
     # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    # check that name is not duplicate
-    # TODO check for capital letters and spaces
-    db_story_same_name = crud.get_story_by_name(db, name=story.name)
-    if db_story_same_name is not None and db_story_same_name.id != id:
-        raise HTTPException(status_code=400, detail="Story with given name already exists")
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
+    #user data from token
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+
+    # check if user is part of the project
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
     
-    # check that name is not empty string or "string"
+    # check if user is product owner or scrum master
+    is_user_project_owner_or_scrum_master = False
+    for role in db_user_project_roles:
+        if role.roleId == 1 or role.roleId == 2:
+            is_user_project_owner_or_scrum_master = True
+            break
+    if not is_user_project_owner_or_scrum_master:
+        raise HTTPException(status_code=400, detail="Currently logged user must be product owner or scrum master at this project, in order to perform this action.")
+    
+    # check that story is not in sprint
+    if db_story.sprint_id is not None:
+        raise HTTPException(status_code=400, detail="Story already assigned to a sprint cannot be updated.")
+    
+    #check that story is not done
+    if db_story.isDone:
+        raise HTTPException(status_code=400, detail="Finished story cannot be updated.")
+
+    # check that name is not duplicate
+    # check for capital letters TODO and spaces? 
+    all_stories_in_project = crud.get_all_stories_in_project(db, projectId=story.projectId)
+    for story_in_proj in all_stories_in_project:
+        if story_in_proj.name.lower() == story.name.lower() and story_in_proj.id != id:
+            raise HTTPException(status_code=400, detail="Story with given name already exists in this project")
+    
+    # check that name is not empty string or "string" use old name if it is
     if story.name == "" or story.name == "string":
         story.name = db_story.name
     
-    # check that description is not empty string or "string"
-    if story.storyDescription == "string":
+    # check that description is not empty string or "string" use old description if it is
+    if story.storyDescription == "string" or story.storyDescription == "" or story.storyDescription is None:
         story.storyDescription = db_story.storyDescription
 
-    # check that priority is not "string"
-    if story.priority == "string":
-        story.priority = db_story.priority
+    # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have at this time"
+    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't have at this time":
+        raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have at this time'.")
     
-    # check that sprint exists
-    if(story.sprint_id is not None):
-        db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
-        if db_sprint is None:
-            raise HTTPException(status_code=404, detail="Sprint does not exist")
+    # check tha business value is within range 1-10
+    if story.businessValue < 1 or story.businessValue > 10:
+        raise HTTPException(status_code=400, detail="Business value must be in range 1-10.")
+    
+    # create any new acceptence tests
+    for test in tests:
+        if test.description is None or test.description == "":
+            raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
+    
+        test = crud.create_test(db=db, test=test, story_id=story.id)
+    
+    # update the story
+
+    #update the acceptence tests
+    #check if tests in story have empty description
+    for test in story.acceptenceTests:
+        if test.description is None or test.description == "":
+            raise HTTPException(status_code=400, detail="Acceptence test description cannot be empty.")
+
+    # get all tests in database for story
+    db_tests = crud.get_all_tests_in_story(db=db, story_id=id)
+    #update the test 
+    for db_test in db_tests:
+        # update test in database if it is in story object
+        for test in story.acceptenceTests:
+            if test.id == db_test.id:
+                #update the test
+                test = crud.update_test(db=db, test=test, test_id=test.id)
+                break
+    
+    # update the time estimate
+    db_story.timeEstimate = story.timeEstimate
+
+    # if timeEstimateOriginal is NONE, set it to the same value as timeEstimate
+    if db_story.timeEstimateOriginal is None or db_story.timeEstimateOriginal == 0:
+        db_story.timeEstimateOriginal = db_story.timeEstimate
 
     # prevent changing projectId
     story.projectId = db_story.projectId
 
-    # check for priority must be one of the following: "Must have", "Should have", "Could have", "Won't have this time"
-    if story.priority != "Must have" and story.priority != "Should have" and story.priority != "Could have" and story.priority != "Won't have this time":
-        raise HTTPException(status_code=400, detail="Priority must be one of the following: 'Must have', 'Should have', 'Could have', 'Won't have this time'.")
-    
+    # prevent completion of story
+    story.isDone = db_story.isDone
+
+    #prevent changing original time estimate
+    story.timeEstimateOriginal = db_story.timeEstimateOriginal
+
+    # prevent changing sprint id
+    story.sprint_id = db_story.sprint_id
+
+    # update story
     return crud.update_story_generic(db=db, story=story, story_id=id)
 
 
 # update only sprint id of story
 @app.put("/story/{id}/sprint", response_model=schemas.Story, tags=["Stories"])
-async def update_story_sprint(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # only the sprint id can be changed with this function
+    
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+
     # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
+    #get user data
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    # check if user is part of the project
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    # check if user is scrum master
+    if db_user_project_role.roleId != 2:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+
+    # check that story is not done
+    if db_story.isDone:
+        raise HTTPException(status_code=400, detail="Finished story cannot be assigned to a sprint.")
+    
+    # check that story is not already in sprint
+    if db_story.sprint_id is not None:
+        raise HTTPException(status_code=400, detail="Story already assigned to a sprint.")
+    
+    # check that story has non-zero time estimate
+    if db_story.timeEstimate == 0 or db_story.timeEstimate is None:
+        raise HTTPException(status_code=400, detail="Story with zero or no time estimate cannot be assigned to a sprint.")
+    
+    #check that story and sprint are in the same project
+    db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
+    if db_story.projectId != db_sprint.projectId:
+        raise HTTPException(status_code=400, detail="Story and sprint must be in the same project.")
+
     # check that sprint with given id exists
     db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
     if db_sprint is None:
@@ -595,29 +718,126 @@ async def update_story_sprint(id: int, story: schemas.StoryUpdate, db: Session =
 
     return crud.update_story_sprint_id(db=db, new_sprint_id=story.sprint_id, story_id=id)
 
+#THIS IS INCLUDET IN GENERAL UPDATE OF THE STORY
+# update only isDone and endDate of story 
+# TODO fix this 
+# @app.put("/story/{id}/isDone", response_model=schemas.Story, tags=["Stories"])
+# async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+#     # check if story with given id exists
+#     db_story = crud.get_story_by_id(db, story_id=id)
+#     if db_story is None:
+#         raise HTTPException(status_code=404, detail="Story does not exist")
+   
+#     # prevent changing anything else
+#     story.sprint_id = None
+#     story.projectId = None
+#     story.name = None
+#     story.storyDescription = None
 
-# update only isDone and endDate of story
-@app.put("/story/{id}/isDone", response_model=schemas.Story, tags=["Stories"])
-async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
+#     return crud.update_story_isDone(db=db, story=story, story_id=id)
+
+# update only timeEstiamte of story
+@app.put("/story/{id}/timeEstimate", response_model=schemas.Story, tags=["Stories"])
+async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    
+    # check if user is logged in
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
     # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
-   
-    # prevent changing anything else
-    story.sprint_id = None
-    story.projectId = None
-    story.name = None
-    story.storyDescription = None
 
-    return crud.update_story_isDone(db=db, story=story, story_id=id)
+    #get user data 
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    #change the time estimate only if the user is Scrum Master
+    is_user_sm = False
+    for role in db_user_project_roles:
+        if role.roleID == 2:
+            is_user_sm = True
+            break
+    
+    if not is_user_sm:
+        raise HTTPException(status_code=400, detail="Currently logged user is not Scrum Master.")
+    
+    # prevent changing the time estiamte if story is already part of a sprint
+    if db_story.sprint_id is not None:
+        raise HTTPException(status_code=400, detail="Story that is already part of a sprint cannot be given a new time estimate.")
+    
+    # update the time estimate
+    db_story.timeEstimate = story_time.timeEstimate
+
+    # if timeEstimateOriginal is NONE, set it to the same value as timeEstimate
+    if db_story.timeEstimateOriginal is None:
+        db_story.timeEstimateOriginal = story_time.timeEstimate
+
+    return crud.update_story_time_estimate(db=db, story=db_story, story_id=id)
 
 
+#delete za story
 @app.delete("/story/{id}", response_model=schemas.Story, tags=["Stories"])
-async def delete_story(id: int, db: Session = Depends(get_db)):
+async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    # check if user is logged in
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
+    # check if story with given id exists
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #get user data
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    #check if user is part of the project
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+    
+    #check if user is Scrum Master or Product Owner
+    is_user_sm_po = False
+    for role in db_user_project_roles:
+        if role.roleId == 2 or role.roleId == 1:
+            is_user_sm_po = True
+            break
+    if not is_user_sm_po:
+        raise HTTPException(status_code=400, detail="Currently logged user is not Scrum Master or Product Owner.")
+    
+    #check if story is part of a sprint
+    if db_story.sprint_id is not None:
+        raise HTTPException(status_code=400, detail="Can't delete story that is part of a sprint.")
+    
+    #check if story has tasks
+    db_story_tasks = crud.get_all_story_tasks(db=db, storyId=id)
+    if db_story_tasks:
+        #check if tasks have any time logged
+        for task in db_story_tasks:
+            db_task_time = crud.check_any_time_logged(db=db, taskId=task.id)
+            if db_task_time:
+                raise HTTPException(status_code=400, detail="Can't delete story that has tasks with time logged.")
+
+    #check that story is not done
+    if db_story.isDone:
+        raise HTTPException(status_code=400, detail="Can't delete story that is done.")
+    
+    # delete acceptanse tests for story
+    db_story_tests = crud.get_all_tests_in_story(db=db, story_id=id)
+    for test in db_story_tests:
+        crud.delete_test(db=db, testId=test.id)
     
     return crud.delete_story(db=db, story_id=id)
 
@@ -694,15 +914,12 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
         raise HTTPException(status_code=400, detail="Cannot add new task under story of currently not active sprint.")
 
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=storyId)
-    sum_time_tasks = 0
     for current_task in db_story_tasks:
-        sum_time_tasks += current_task.timeEstimate
         if current_task.name.lower() == task.name.lower():
             raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
 
-    upper_bound = (db_story.timeEstimate * 6) - sum_time_tasks
-    if not 0 < task.timeEstimate <= upper_bound:
-        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
+    if task.timeEstimate <= 0:
+        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number.")
 
     if task.assigneeUserId is not None:
         db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=task.assigneeUserId)
@@ -851,16 +1068,13 @@ async def update_task(taskId: int, task: schemas.TaskInput, db: Session = Depend
         raise HTTPException(status_code=400, detail="Already assigned tasks cannot be edited.")
 
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=db_story.id)
-    sum_time_tasks = 0
     for current_task in db_story_tasks:
-        sum_time_tasks += current_task.timeEstimate
         if current_task.name.lower() == task.name.lower():
             if db_task.name != task.name:
                 raise HTTPException(status_code=400, detail="Task with identical name already exist under this story.")
 
-    upper_bound = (db_story.timeEstimate * 6) - sum_time_tasks
-    if not 0 < task.timeEstimate <= upper_bound:
-        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number with calculated upper bound of {upper_bound}.")
+    if task.timeEstimate <= 0:
+        raise HTTPException(status_code=400, detail=f"Time estimate must be a positive number.")
 
     if task.assigneeUserId is not None:
         db_user_project_role = crud.get_user_role_from_project_descending(db=db, projectId=db_story.projectId, userId=task.assigneeUserId)

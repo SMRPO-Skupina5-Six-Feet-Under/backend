@@ -261,7 +261,7 @@ def get_story_by_name(db: Session, name: str):
 
 # ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, projectId=story.projectId, isDone=False)
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, timeEstimateOriginal=story.timeEstimateOriginal, projectId=story.projectId, isDone=False)
     db.add(db_story)
     db.commit()
     db.refresh(db_story)
@@ -274,8 +274,8 @@ def get_all_stories(db: Session, skip: int = 0, limit: int = 100):
 
 
 # get za vse zgodbe v projektu
-def get_all_stories_in_project(db: Session, project_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Story).filter(models.Story.projectId == project_id).offset(skip).limit(limit).all()
+def get_all_stories_in_project(db: Session, projectId: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.projectId == projectId).offset(skip).limit(limit).all()
 
 
 # get za vse zgodbe v projektu z določeno prioriteto
@@ -294,6 +294,10 @@ def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int)
     db_new_story.businessValue = db_new_story.businessValue if story.businessValue is None else story.businessValue
     db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
     db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id is None else story.sprint_id
+
+    # zapoomni si začetni čas ko je čas prvič nastavljen
+    if db_new_story.timeEstimateOriginal is None:
+        db_new_story.timeEstimateOriginal = db_new_story.timeEstimate
 
     db.commit()
     db.refresh(db_new_story)
@@ -327,7 +331,24 @@ def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
     return db_new_story
 
 
-# delete story
+# update only time estiamte on story
+def update_story_time_estimate(db: Session, story: schemas.Story, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    # posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
+
+    # zapoomni si začetni čas ko je čas prvič nastavljen
+    if db_new_story.timeEstimateOriginal is None:
+        db_new_story.timeEstimateOriginal = db_new_story.timeEstimate
+    
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+
+# delete story (should this be soft delete?)
 def delete_story(db: Session, story_id: int):
     db_story = db.query(models.Story).filter(models.Story.id == story_id).first()
     db.delete(db_story)
@@ -342,6 +363,32 @@ def create_test(db: Session, test: schemas.AcceptenceTestCreate, story_id: int):
     db.commit()
     db.refresh(db_test)
 
+    return db_test
+
+
+# get all tests of a story
+def get_all_tests_in_story(db: Session, story_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.AcceptenceTest).filter(models.AcceptenceTest.storyId == story_id).offset(skip).limit(limit).all()
+
+
+# update test
+def update_test(db: Session, test: schemas.AcceptenceTest, test_id: int):
+    db_new_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == test_id).first()
+
+    # posodobi vrednosti če so podane drugače ostanejo stare
+    db_new_test.description = db_new_test.description if test.description is None else test.description
+
+    db.commit()
+    db.refresh(db_new_test)
+
+    return db_new_test
+
+
+# delete test
+def delete_test(db: Session, testId: int):
+    db_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == testId).first()
+    db.delete(db_test)
+    db.commit()
     return db_test
 
 
