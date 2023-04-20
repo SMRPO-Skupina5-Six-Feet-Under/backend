@@ -1041,13 +1041,8 @@ async def update_task(taskId: int, task: schemas.TaskInput, db: Session = Depend
     if db_task.isDone:
         raise HTTPException(status_code=400, detail="Tasks that are marked as done cannot be edited.")
 
-    if db_task.hasAssigneeConfirmed:
-        if task.timeEstimate != db_task.timeEstimate:
-            raise HTTPException(status_code=400, detail="Time estimate cannot be edited if task is marked as accepted.")
-
-    if db_task.hasAssigneeConfirmed:
-        if task.assigneeUserId != db_task.assigneeUserId:
-            raise HTTPException(status_code=400, detail="Assignee cannot be edited if task is marked as accepted.")
+    if db_task.assigneeUserId is not None:
+        raise HTTPException(status_code=400, detail="Already assigned tasks cannot be edited.")
 
     db_story_tasks = crud.get_all_story_tasks(db=db, storyId=db_story.id)
     for current_task in db_story_tasks:
