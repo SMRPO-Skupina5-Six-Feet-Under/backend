@@ -192,8 +192,8 @@ class Task(BaseModel):
     timeEstimate: int
     assigneeUserId: int = None
     hasAssigneeConfirmed: bool = False
+    isActive: bool = False
     isDone: bool = False
-    isFinished: bool = False
     storyId: int
 
     class Config:
