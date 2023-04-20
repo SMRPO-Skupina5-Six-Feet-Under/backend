@@ -842,20 +842,43 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
     return crud.delete_story(db=db, story_id=id)
 
 
-@app.get("/task/{storyId}/all", response_model=List[schemas.Task], tags=["Tasks"])
+@app.get("/task/{storyId}/all", response_model=List[schemas.TaskWithRemainingEstimate], tags=["Tasks"])
 async def list_all_story_tasks(storyId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     db_story = crud.get_story_by_id(db=db, story_id=storyId)
     if not db_story:
         raise HTTPException(status_code=400, detail="Story with given identifier does not exist.")
-    return crud.get_all_story_tasks(db, storyId=storyId, skip=skip, limit=limit)
+
+    db_tasks = crud.get_all_story_tasks(db, storyId=storyId, skip=skip, limit=limit)
+
+    response = []
+    for task in db_tasks:
+        time_remaining = None
+        if task.isDone:
+            time_remaining = 0
+        else:
+            db_worklogs = crud.list_timelogs_by_task_id(db=db, taskId=task.id)
+            if db_worklogs:
+                time_remaining = db_worklogs[0].timeRemainingEstimate
+        response.append(schemas.TaskWithRemainingEstimate(task=task, timeRemainingEstimate=time_remaining))
+
+    return response
 
 
-@app.get("/task/{taskId}", response_model=schemas.Task, tags=["Tasks"])
+@app.get("/task/{taskId}", response_model=schemas.TaskWithRemainingEstimate, tags=["Tasks"])
 async def get_task(taskId: int, db: Session = Depends(get_db)):
     db_task = crud.get_task_by_id(db=db, taskId=taskId)
     if not db_task:
         raise HTTPException(status_code=400, detail="Task with given identifier does not exist.")
-    return db_task
+
+    time_remaining = None
+    if db_task.isDone:
+        time_remaining = 0
+    else:
+        db_worklogs = crud.list_timelogs_by_task_id(db=db, taskId=taskId)
+        if db_worklogs:
+            time_remaining = db_worklogs[0].timeRemainingEstimate
+
+    return schemas.TaskWithRemainingEstimate(task=db_task, timeRemainingEstimate=time_remaining)
 
 
 @app.post("/task/{storyId}", response_model=schemas.Task, tags=["Tasks"])
@@ -1231,6 +1254,12 @@ async def start_task(taskId: int, db: Session = Depends(get_db), Authorize: Auth
 
     if not db_task.hasAssigneeConfirmed:
         raise HTTPException(status_code=400, detail="You have to confirm the task first until you start making progress.")
+
+    my_tasks = crud.get_all_my_tasks(db=db, userId=db_user_data.id)
+    for task in my_tasks:
+        if task.id != taskId:
+            if task.isActive:
+                raise HTTPException(status_code=400, detail="You already have at least one task in progress right now. You can only work on one task at a time.")
 
     crud.insert_work_progress(db=db, taskId=taskId)
 

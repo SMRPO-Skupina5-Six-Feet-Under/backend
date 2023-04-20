@@ -261,7 +261,7 @@ def get_story_by_name(db: Session, name: str):
 
 # ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, timeEstimateOriginal=story.timeEstimateOriginal , projectId=story.projectId, isDone=False)
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, timeEstimateOriginal=story.timeEstimateOriginal, projectId=story.projectId, isDone=False)
     db.add(db_story)
     db.commit()
     db.refresh(db_story)
@@ -294,7 +294,6 @@ def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int)
     db_new_story.businessValue = db_new_story.businessValue if story.businessValue is None else story.businessValue
     db_new_story.timeEstimate = db_new_story.timeEstimate if story.timeEstimate is None else story.timeEstimate
     db_new_story.sprint_id = db_new_story.sprint_id if story.sprint_id is None else story.sprint_id
-
 
     # zapoomni si začetni čas ko je čas prvič nastavljen
     if db_new_story.timeEstimateOriginal is None:
@@ -330,6 +329,7 @@ def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
     db.refresh(db_new_story)
 
     return db_new_story
+
 
 # update only time estiamte on story
 def update_story_time_estimate(db: Session, story: schemas.Story, story_id: int):
@@ -370,6 +370,7 @@ def create_test(db: Session, test: schemas.AcceptenceTestCreate, story_id: int):
 def get_all_tests_in_story(db: Session, story_id: int, skip: int = 0, limit: int = 100):
     return db.query(models.AcceptenceTest).filter(models.AcceptenceTest.storyId == story_id).offset(skip).limit(limit).all()
 
+
 # update test
 def update_test(db: Session, test: schemas.AcceptenceTest, test_id: int):
     db_new_test = db.query(models.AcceptenceTest).filter(models.AcceptenceTest.id == test_id).first()
@@ -381,6 +382,7 @@ def update_test(db: Session, test: schemas.AcceptenceTest, test_id: int):
     db.refresh(db_new_test)
 
     return db_new_test
+
 
 # delete test
 def delete_test(db: Session, testId: int):
@@ -404,6 +406,10 @@ def get_all_story_tasks(db: Session, storyId: int, skip: int = 0, limit: int = 1
 
 def get_task_by_id(db: Session, taskId: int):
     return db.query(models.Task).filter(models.Task.id == taskId).first()
+
+
+def get_all_my_tasks(db: Session, userId: int):
+    return db.query(models.Task).filter(models.Task.assigneeUserId == userId).all()
 
 
 def update_task_assignee_confirm(db: Session, taskId: int, userId: int):
