@@ -178,6 +178,8 @@ class Story(StoryBase):
 
     acceptenceTests: list[AcceptenceTest] = []
     timeEstimateOriginal: int = None
+    rejectReason: str = None
+    isConfirmed: bool = False
 
     # TODO povezava z nalogami
     # subtasks: List["Task"] = []

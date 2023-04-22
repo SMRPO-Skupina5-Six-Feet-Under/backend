@@ -719,7 +719,7 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
     #check that sprint velocity will not be exceeded
     #get all stories in sprint
     vsota_te_in_sprint = 0
-    db_sprint_stories = crud.get_all_stories_in_sprint(db=db, sprint_id=story.sprint_id)
+    db_sprint_stories = crud.get_all_stories_in_sprint(db=db, sprintId=story.sprint_id)
 
     #calculate sum of time estimates of stories in sprint
     for story in db_sprint_stories:
@@ -854,6 +854,112 @@ async def delete_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
         crud.delete_test(db=db, testId=test.id)
     
     return crud.delete_story(db=db, story_id=id)
+
+# reject story for sprint
+@app.post("/story/{id}/reject", response_model=schemas.Story, tags=["Stories"])
+async def reject_story(id: int,  story: schemas.Story, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    #Changes sprint_id to None and updates the reject reason.
+
+    # check if user is logged in
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
+    # check if story with given id exists
+    db_story = crud.get_story_by_id(db, story_id=id)
+    if db_story is None:
+        raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #get user data
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    # check if user is part of the project
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    # check if user is PO
+    if db_user_project_role.roleId != 1:
+        raise HTTPException(status_code=400, detail="Currently logged user must be product owner for this project, in order to perform this action.")
+
+    #check if story is part of a sprint
+    if db_story.sprint_id is None:
+        raise HTTPException(status_code=400, detail="Can't reject story that is not part of a sprint.")
+    
+    #check that sprint is active and not done
+    db_sprint = crud.get_sprint_by_id(db=db, sprintId=db_story.sprint_id)
+    
+    if db_sprint.endDate.date() < datetime.date.today():
+        raise HTTPException(status_code=400, detail="Can't reject story that is part of a done sprint.")
+    
+    if db_sprint.startDate.date() > datetime.date.today():
+        raise HTTPException(status_code=400, detail="Can't reject story that is part of a sprint that is not active.")
+    
+    #check if story is confiremd
+    if db_story.isConfirmed:
+        raise HTTPException(status_code=400, detail="Can't reject story that has already been confirmed.")
+    
+    #reject story 
+    return crud.reject_story_from_sprint(db=db, story=story)
+
+
+# accept story for sprint
+@app.post("/story/{id}/accept", response_model=schemas.Story, tags=["Stories"])
+async def accept_story(id: int, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    #Changes sprint_id to None and updates isConfirmed to true.
+
+    # check if user is logged in
+    try:
+        Authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="User not logged in, or the token expired. Please log in.")
+    
+    # check if story with given id exists
+    db_story = crud.get_story_by_id(db, story_id=id)
+    if db_story is None:
+        raise HTTPException(status_code=404, detail="Story does not exist")
+    
+    #get user data
+    user_name = Authorize.get_jwt_subject()
+    db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
+    db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
+
+    # check if user is part of the project
+    if not db_user_project_role:
+        raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
+
+    # check if user is PO
+    if db_user_project_role.roleId != 1:
+        raise HTTPException(status_code=400, detail="Currently logged user must be product owner for this project, in order to perform this action.")
+
+    #check if story is part of a sprint
+    if db_story.sprint_id is None:
+        raise HTTPException(status_code=400, detail="Can't reject story that is not part of a sprint.")
+    
+    #check that sprint is active and not done
+    db_sprint = crud.get_sprint_by_id(db=db, sprintId=db_story.sprint_id)
+    
+    if db_sprint.endDate.date() < datetime.date.today():
+        raise HTTPException(status_code=400, detail="Can't reject story that is part of a done sprint.")
+    
+    if db_sprint.startDate.date() > datetime.date.today():
+        raise HTTPException(status_code=400, detail="Can't reject story that is part of a sprint that is not active.")
+    
+    #check if story is confiremd
+    if db_story.isConfirmed:
+        raise HTTPException(status_code=400, detail="Can't accpet story that has already been confirmed.")
+    
+    #check if all tasks are done 
+    db_tasks = crud.get_all_story_tasks(db=db, storyId=db_story.id)
+    for task in db_tasks:
+        if not task.isDone:
+            raise HTTPException(status_code=400, detail="Can't accept story that has unfinished tasks.")
+    
+    #accept story
+    return crud.accept_story_in_sprint(db=db, story_id=id)
+
 
 
 @app.get("/task/{storyId}/all", response_model=List[schemas.Task], tags=["Tasks"])
