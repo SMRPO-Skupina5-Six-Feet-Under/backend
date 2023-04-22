@@ -879,7 +879,7 @@ async def get_task(taskId: int, db: Session = Depends(get_db)):
         db_worklogs = crud.list_timelogs_by_task_id(db=db, taskId=taskId)
         if db_worklogs and db_worklogs[0]:
             time_remaining = db_worklogs[0].timeRemainingEstimate
-        else
+        else:
             time_remaining = db_task.timeEstimate
 
     return schemas.TaskWithRemainingEstimate(id=db_task.id, name=db_task.name, description=db_task.description, timeEstimate=db_task.timeEstimate, assigneeUserId=db_task.assigneeUserId, hasAssigneeConfirmed=db_task.hasAssigneeConfirmed, isActive=db_task.isActive, isDone=db_task.isDone, storyId=db_task.storyId, timeRemainingEstimate=time_remaining)
