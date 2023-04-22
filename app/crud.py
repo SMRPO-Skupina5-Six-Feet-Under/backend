@@ -403,6 +403,9 @@ def create_task(db: Session, task: schemas.TaskInput, storyId: int):
 def get_all_story_tasks(db: Session, storyId: int, skip: int = 0, limit: int = 1000):
     return db.query(models.Task).filter(models.Task.storyId == storyId).offset(skip).limit(limit).all()
 
+def get_all_story_user_tasks(db: Session, storyId: int, userId: int, skip: int = 0, limit: int = 1000):
+    return db.query(models.Task).filter(and_(models.Task.storyId == storyId, models.Task.assigneeUserId == userId)).offset(skip).limit(limit).all()
+
 
 def get_task_by_id(db: Session, taskId: int):
     return db.query(models.Task).filter(models.Task.id == taskId).first()

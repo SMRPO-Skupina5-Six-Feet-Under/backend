@@ -865,6 +865,39 @@ async def list_all_story_tasks(storyId: int, skip: int = 0, limit: int = 100, db
 
     return response
 
+@app.get("/task/{sprintId}/{userId}/all", response_model=List[schemas.TaskWithRemainingEstimate], tags=["Tasks"])
+async def all_sprint_user_accepted_tasks(sprintId: int, userId: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    db_sprint = crud.get_sprint_by_id(db=db, sprintId=sprintId)
+    if not db_sprint:
+        raise HTTPException(status_code=400, detail="Sprint with given identifier does not exist.")
+    db_user = crud.get_user_by_id(db=db, identifier=userId)
+    if not db_user:
+        raise HTTPException(status_code=400, detail="User with given identifier does not exist.")
+    if db_sprint.projectId is None:
+        raise HTTPException(status_code=400, detail="Sprint is not part of any project.")
+    db_project = crud.get_project_by_id(db=db, identifier=db_sprint.projectId)
+    if db_project is None:
+        raise HTTPException(status_code=400, detail="Project with given identifier does not exist.")
+
+    db_stories = crud.get_all_stories_in_project(db=db, projectId=db_project.id)
+
+    response = []
+    for story in db_stories:
+        db_tasks = crud.get_all_story_user_tasks(db, storyId=story.id, userId=db_user.id, skip=skip, limit=limit)
+        for task in db_tasks:
+            time_remaining = None
+            if task.isDone:
+                time_remaining = 0
+            else:
+                db_worklogs = crud.list_timelogs_by_task_id(db=db, taskId=task.id)
+                if db_worklogs and db_worklogs[0]:
+                    time_remaining = db_worklogs[0].timeRemainingEstimate
+                else:
+                    time_remaining = task.timeEstimate
+            response.append(schemas.TaskWithRemainingEstimate(id=task.id, name=task.name, description=task.description, timeEstimate=task.timeEstimate, assigneeUserId=task.assigneeUserId, hasAssigneeConfirmed=task.hasAssigneeConfirmed, isActive=task.isActive, isDone=task.isDone, storyId=task.storyId, timeRemainingEstimate=time_remaining))
+
+    return response
+
 
 @app.get("/task/{taskId}", response_model=schemas.TaskWithRemainingEstimate, tags=["Tasks"])
 async def get_task(taskId: int, db: Session = Depends(get_db)):
