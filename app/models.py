@@ -64,6 +64,8 @@ class Story(Base):
     isDone = Column(Boolean)                # ce je koncana nastavi na TRUE
     #isActive = Column(Boolean)              # ce je aktivna nastavi na TRUE
     timeEstimateOriginal = Column(Integer)  # originalno nastavljen time estimate
+    rejectReason = Column(String)           # razlog zavrnitve zgodbe
+    isConfirmed = Column(Boolean)           # ce je zgodba potrjena nastavi na TRUE
     
     # ================= relacije/atrbuti drugje ==================
     # sprejemni testi

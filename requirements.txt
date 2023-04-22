@@ -19,5 +19,8 @@ pydantic~=1.10.2
 #prijava
 fastapi-jwt-auth==0.5.0
 
+#idk kaj je to lol
+python-multipart
+
 #file upload/download response
 starlette~=0.21.0

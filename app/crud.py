@@ -248,40 +248,37 @@ def get_all_user_roles(db: Session, projectId: int, userId: int):
                 models.ProjectParticipants.userId == userId)\
         .all()
 
-
 # get zgodba by id
 def get_story_by_id(db: Session, story_id: int):
     return db.query(models.Story).filter(models.Story.id == story_id).first()
-
 
 # get zgodba by name
 def get_story_by_name(db: Session, name: str):
     return db.query(models.Story).filter(models.Story.name == name).first()
 
-
 # ustvari novo zgodbo
 def create_story(db: Session, story: schemas.StoryCreate):
-    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, timeEstimateOriginal=story.timeEstimateOriginal, projectId=story.projectId, isDone=False)
+    db_story = models.Story(name=story.name, storyDescription=story.storyDescription, priority=story.priority, businessValue=story.businessValue, timeEstimate=story.timeEstimate, timeEstimateOriginal=story.timeEstimateOriginal , projectId=story.projectId, isDone=False, isConfirmed= False)
     db.add(db_story)
     db.commit()
     db.refresh(db_story)
     return db_story
 
-
 # get za vse zgodbe
 def get_all_stories(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Story).offset(skip).limit(limit).all()
-
 
 # get za vse zgodbe v projektu
 def get_all_stories_in_project(db: Session, projectId: int, skip: int = 0, limit: int = 100):
     return db.query(models.Story).filter(models.Story.projectId == projectId).offset(skip).limit(limit).all()
 
+# get za vse zgodbe v sprintu 
+def get_all_stories_in_sprint(db: Session, sprintId: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.sprint_id == sprintId).offset(skip).limit(limit).all()
 
 # get za vse zgodbe v projektu z določeno prioriteto
 def get_all_stories_in_project_with_priority(db: Session, project_id: int, priority: str, skip: int = 0, limit: int = 100):
     return db.query(models.Story).filter(models.Story.projectId == project_id).filter(models.Story.priority == priority).offset(skip).limit(limit).all()
-
 
 # update story 
 def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int):
@@ -304,7 +301,6 @@ def update_story_generic(db: Session, story: schemas.StoryUpdate, story_id: int)
 
     return db_new_story
 
-
 # update only sprint_id
 def update_story_sprint_id(db: Session, new_sprint_id: int, story_id: int):
     db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
@@ -317,6 +313,38 @@ def update_story_sprint_id(db: Session, new_sprint_id: int, story_id: int):
 
     return db_new_story
 
+# reject story from sprint
+def reject_story_from_sprint(db: Session, story: schemas.Story):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story.id).first()
+
+    # posodobi sprint_id na None
+    db_new_story.sprint_id = None
+
+    # posodobi rejectReason
+    db_new_story.rejectReason = story.rejectReason
+
+    #update in database
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
+
+# accept story in sprint
+def accept_story_in_sprint(db: Session, story_id: int):
+    db_new_story = db.query(models.Story).filter(models.Story.id == story_id).first()
+
+    # posodobi sprint_id
+    db_new_story.sprint_id = None
+
+    # posodobi isDone in isConfirmed
+    db_new_story.isDone = True
+    db_new_story.isConfirmed = True
+
+    #update in database
+    db.commit()
+    db.refresh(db_new_story)
+
+    return db_new_story
 
 # update isDone
 def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
