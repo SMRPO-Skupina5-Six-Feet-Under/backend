@@ -201,7 +201,15 @@ class Task(BaseModel):
 
 
 class TaskWithRemainingEstimate(BaseModel):
-    task: Task
+    id: int
+    name: str
+    description: str
+    timeEstimate: int
+    assigneeUserId: int = None
+    hasAssigneeConfirmed: bool = False
+    isActive: bool = False
+    isDone: bool = False
+    storyId: int
     timeRemainingEstimate: Optional[int] = None
 
     class Config:

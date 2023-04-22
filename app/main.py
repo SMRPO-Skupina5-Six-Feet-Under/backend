@@ -859,7 +859,7 @@ async def list_all_story_tasks(storyId: int, skip: int = 0, limit: int = 100, db
             db_worklogs = crud.list_timelogs_by_task_id(db=db, taskId=task.id)
             if db_worklogs:
                 time_remaining = db_worklogs[0].timeRemainingEstimate
-        response.append(schemas.TaskWithRemainingEstimate(task=task, timeRemainingEstimate=time_remaining))
+        response.append(schemas.TaskWithRemainingEstimate(id=task.id, name=task.name, description=task.description, timeEstimate=task.timeEstimate, assigneeUserId=task.assigneeUserId, hasAssigneeConfirmed=task.hasAssigneeConfirmed, isActive=task.isActive, isDone=task.isDone, storyId=task.storyId, timeRemainingEstimate=time_remaining))
 
     return response
 
@@ -878,7 +878,7 @@ async def get_task(taskId: int, db: Session = Depends(get_db)):
         if db_worklogs:
             time_remaining = db_worklogs[0].timeRemainingEstimate
 
-    return schemas.TaskWithRemainingEstimate(task=db_task, timeRemainingEstimate=time_remaining)
+    return schemas.TaskWithRemainingEstimate(id=db_task.id, name=db_task.name, description=db_task.description, timeEstimate=db_task.timeEstimate, assigneeUserId=db_task.assigneeUserId, hasAssigneeConfirmed=db_task.hasAssigneeConfirmed, isActive=db_task.isActive, isDone=db_task.isDone, storyId=db_task.storyId, timeRemainingEstimate=time_remaining)
 
 
 @app.post("/task/{storyId}", response_model=schemas.Task, tags=["Tasks"])
