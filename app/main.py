@@ -769,20 +769,15 @@ async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Sess
     user_name = Authorize.get_jwt_subject()
     db_user_data = crud.get_UporabnikBase_by_username(db=db, userName=user_name)
     db_user_project_role = crud.get_user_role_from_project(db=db, projectId=db_story.projectId, userId=db_user_data.id)
-    db_user_project_roles = crud.get_all_user_roles(db=db, projectId=db_story.projectId, userId=db_user_data.id)
 
+    # check if user is part of the project
     if not db_user_project_role:
         raise HTTPException(status_code=400, detail="Currently logged user is not part of the selected project.")
 
-    #change the time estimate only if the user is Scrum Master
-    is_user_sm = False
-    for role in db_user_project_roles:
-        if role.roleID == 2:
-            is_user_sm = True
-            break
-    
-    if not is_user_sm:
-        raise HTTPException(status_code=400, detail="Currently logged user is not Scrum Master.")
+    # check if user is scrum master
+    if db_user_project_role.roleId != 2:
+        raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
+
     
     # prevent changing the time estiamte if story is already part of a sprint
     if db_story.sprint_id is not None:
