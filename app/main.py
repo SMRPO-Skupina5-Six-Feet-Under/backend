@@ -715,7 +715,21 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
     db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
     if db_sprint is None:
         raise HTTPException(status_code=404, detail="Sprint does not exist")
+    
+    #check that sprint velocity will not be exceeded
+    #get all stories in sprint
+    vsota_te_in_sprint = 0
+    db_sprint_stories = crud.get_all_stories_in_sprint(db=db, sprint_id=story.sprint_id)
 
+    #calculate sum of time estimates of stories in sprint
+    for story in db_sprint_stories:
+        if story.timeEstimate is not None:
+            vsota_te_in_sprint += story.timeEstimate
+
+    #check if adding story to sprint would exceed sprint velocity
+    if vsota_te_in_sprint + db_story.timeEstimate > db_sprint.velocity:
+        raise HTTPException(status_code=400, detail="Sprint velocity would be exceeded.")
+    
     return crud.update_story_sprint_id(db=db, new_sprint_id=story.sprint_id, story_id=id)
 
 #THIS IS INCLUDET IN GENERAL UPDATE OF THE STORY

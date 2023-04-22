@@ -277,6 +277,10 @@ def get_all_stories(db: Session, skip: int = 0, limit: int = 100):
 def get_all_stories_in_project(db: Session, projectId: int, skip: int = 0, limit: int = 100):
     return db.query(models.Story).filter(models.Story.projectId == projectId).offset(skip).limit(limit).all()
 
+# get za vse zgodbe v sprintu 
+def get_all_stories_in_sprint(db: Session, sprintId: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Story).filter(models.Story.sprint_id == sprintId).offset(skip).limit(limit).all()
+
 
 # get za vse zgodbe v projektu z določeno prioriteto
 def get_all_stories_in_project_with_priority(db: Session, project_id: int, priority: str, skip: int = 0, limit: int = 100):
@@ -317,7 +321,6 @@ def update_story_sprint_id(db: Session, new_sprint_id: int, story_id: int):
     db.refresh(db_new_story)
 
     return db_new_story
-
 
 # update isDone
 def update_story_isDone(db: Session, story: schemas.Story, story_id: int):
