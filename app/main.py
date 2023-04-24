@@ -497,10 +497,9 @@ async def read_all_stories_in_project(project_id: int, skip: int = 0, limit: int
                 allDone = False
                 break
 
-        #if all tasks are done, the story is done so need to commit it to db
-        if allDone:
-            story.isDone = True
-            crud.update_story_isDone(db, story=story, story_id=story.id)
+        #commit new value to db
+        story.isDone = allDone
+        crud.update_story_isDone(db, story=story, story_id=story.id)
 
     #after checking all tasks in all stories in project, return all stories with fixed isDone
 
@@ -528,10 +527,9 @@ async def read_story(id: int, db: Session = Depends(get_db)):
             allDone = False
             break
 
-    #if all tasks are done, the story is done so need to commit it to db
-    if allDone:
-        db_story.isDone = True
-        db_story = crud.update_story_isDone(db, story=db_story, story_id=id)
+    #commit new value to db
+    db_story.isDone = allDone
+    db_story = crud.update_story_isDone(db, story=db_story, story_id=id)
 
     #get updated story
     return crud.get_story_by_id(db, story_id=id)
