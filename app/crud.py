@@ -337,7 +337,7 @@ def accept_story_in_sprint(db: Session, story_id: int):
     db_new_story.sprint_id = None
 
     # posodobi isDone in isConfirmed
-    db_new_story.isDone = True
+    #db_new_story.isDone = True #is done is now set sepereatly
     db_new_story.isConfirmed = True
 
     #update in database
