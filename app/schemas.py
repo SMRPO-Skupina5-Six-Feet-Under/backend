@@ -249,6 +249,14 @@ class WorkTimeInput(BaseModel):
         orm_mode = True
 
 
+class WorkTimeInputWithoutDate(BaseModel):
+    timeDone: int
+    timeRemainingEstimate: int
+
+    class Config:
+        orm_mode = True
+
+
 class Message(BaseModel):
     id: int
     content: str

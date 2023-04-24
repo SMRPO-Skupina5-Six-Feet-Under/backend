@@ -556,21 +556,36 @@ def list_timelogs_by_task_id_by_user_id(db: Session, taskId: int, userId: int, s
 
 def update_or_insert_worktime(db: Session, taskId: int, userId: int, workTime: schemas.WorkTimeInput):
     db_worktime = db.query(models.WorkTime).filter(and_(models.WorkTime.taskId == taskId, models.WorkTime.userId == userId, cast(models.WorkTime.date, Date) == workTime.date.date())).first()
+    # Insert new entry under selected date.
+    db_worktime = models.WorkTime(date=workTime.date, timeDone=workTime.timeDone, timeRemainingEstimate=workTime.timeRemainingEstimate, userId=userId, taskId=taskId)
+    db.add(db_worktime)
+    db.commit()
+    db.refresh(db_worktime)
 
-    if not db_worktime:
-        # Insert new entry under selected date.
-        db_worktime = models.WorkTime(date=workTime.date, timeDone=workTime.timeDone, timeRemainingEstimate=workTime.timeRemainingEstimate, userId=userId, taskId=taskId)
-        db.add(db_worktime)
-        db.commit()
-        db.refresh(db_worktime)
-    else:
-        # Update entry under selected date.
-        db_worktime.timeDone = workTime.timeDone
-        db_worktime.timeRemainingEstimate = workTime.timeRemainingEstimate
-        db.commit()
-        db.refresh(db_worktime)
+    # if not db_worktime:
+    # ...
+    # else:
+    #     # Update entry under selected date.
+    #     db_worktime.timeDone = workTime.timeDone
+    #     db_worktime.timeRemainingEstimate = workTime.timeRemainingEstimate
+    #     db.commit()
+    #     db.refresh(db_worktime)
 
     return db_worktime
+
+
+def update_only_worktime(db: Session, worktimeId: int, workTime: schemas.WorkTimeInputWithoutDate):
+    db_worktime = db.query(models.WorkTime).filter(models.WorkTime.id == worktimeId).first()
+    db_worktime.timeDone = workTime.timeDone
+    db_worktime.timeRemainingEstimate = workTime.timeRemainingEstimate
+    db.commit()
+    db.refresh(db_worktime)
+
+    return db_worktime
+
+
+def get_worktime_by_id(db: Session, worktimeId: int):
+    return db.query(models.WorkTime).filter(models.WorkTime.id == worktimeId).first()
 
 
 def update_worktime(db: Session, taskId: int, taskEstimate: int, userId: int, workDone: int):
