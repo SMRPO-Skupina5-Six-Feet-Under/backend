@@ -472,19 +472,69 @@ async def update_sprint(sprintId: int, sprint: schemas.SprintPatch, db: Session 
 
     return crud.update_sprint(db=db, sprint=sprint, db_sprint=db_sprint)
 
+# ********************** STORIES ********************** #
 
+#get all stories in project
 @app.get("/stories/{project_id}", response_model=List[schemas.Story], tags=["Stories"])
 async def read_all_stories_in_project(project_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+
+    # get all stories in project
+    db_stories = crud.get_all_stories_in_project(db, project_id, skip=skip, limit=limit)
+
+    #for each story, get all tasks
+    for story in db_stories:
+        #get all tasks for story
+        db_tasks = crud.get_all_story_tasks(db, storyId=story.id)
+
+        #if there are no tasks, continue to next story
+        if db_tasks is None or len(db_tasks) == 0:
+            continue
+
+        #check if all tasks are done and if so, set story to done
+        allDone = True
+        for task in db_tasks:
+            if not task.isDone:
+                allDone = False
+                break
+
+        #if all tasks are done, the story is done so need to commit it to db
+        if allDone:
+            story.isDone = True
+            crud.update_story_isDone(db, story=story, story_id=story.id)
+
+    #after checking all tasks in all stories in project, return all stories with fixed isDone
+
     return crud.get_all_stories_in_project(db, project_id, skip=skip, limit=limit)
 
-
+# get story by id
 @app.get("/story/{id}", response_model=schemas.Story, tags=["Stories"])
 async def read_story(id: int, db: Session = Depends(get_db)):
     db_story = crud.get_story_by_id(db, story_id=id)
     if db_story is None:
         raise HTTPException(status_code=404, detail="Story does not exist")
     
-    return db_story
+    #check the tasks of story 
+    db_tasks = crud.get_all_story_tasks(db, storyId=id)
+    #print(db_tasks)
+
+    if db_tasks is None or len(db_tasks) == 0:
+        print("no tasks")
+        return db_story
+    
+    #goes through all tasks and if one is not done, the story is not done
+    allDone = True
+    for task in db_tasks:
+        if not task.isDone:
+            allDone = False
+            break
+
+    #if all tasks are done, the story is done so need to commit it to db
+    if allDone:
+        db_story.isDone = True
+        db_story = crud.update_story_isDone(db, story=db_story, story_id=id)
+
+    #get updated story
+    return crud.get_story_by_id(db, story_id=id)
 
 #create story
 @app.post("/story", response_model=schemas.Story, tags=["Stories"])
@@ -524,6 +574,10 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     # db_story = crud.get_story_by_name(db, name=story.name)
     # if db_story:
     #     raise HTTPException(status_code=400, detail="Story already exists")
+
+    #check that priority is one of the allowed values
+    if story.priority not in ["Must have", "Should have", "Could have","Won't have at this time"]:
+        raise HTTPException(status_code=400, detail="Priority must be one of the following: Must have, Should have, Could have, Won't have at this time.")
     
     # check if project with given id exists
     db_project = crud.get_project_by_id(db=db, identifier=story.projectId)
@@ -665,7 +719,6 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
     # update story
     return crud.update_story_generic(db=db, story=story, story_id=id)
 
-
 # update only sprint id of story
 @app.put("/story/{id}/sprint", response_model=schemas.Story, tags=["Stories"])
 async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
@@ -706,6 +759,9 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
     if db_story.timeEstimate == 0 or db_story.timeEstimate is None:
         raise HTTPException(status_code=400, detail="Story with zero or no time estimate cannot be assigned to a sprint.")
     
+    if story.sprint_id is None:
+        raise HTTPException(status_code=400, detail="Select a sprint to assign the story to.")
+    
     #check that story and sprint are in the same project
     db_sprint = crud.get_sprint_by_id(db, sprintId=story.sprint_id)
     if db_story.projectId != db_sprint.projectId:
@@ -731,24 +787,6 @@ async def update_story_sprint(id: int, story: schemas.Story, db: Session = Depen
         raise HTTPException(status_code=400, detail="Sprint velocity would be exceeded.")
     
     return crud.update_story_sprint_id(db=db, new_sprint_id=story.sprint_id, story_id=id)
-
-#THIS IS INCLUDET IN GENERAL UPDATE OF THE STORY
-# update only isDone and endDate of story 
-# TODO fix this 
-# @app.put("/story/{id}/isDone", response_model=schemas.Story, tags=["Stories"])
-# async def update_story_isDone(id: int, story: schemas.StoryUpdate, db: Session = Depends(get_db)):
-#     # check if story with given id exists
-#     db_story = crud.get_story_by_id(db, story_id=id)
-#     if db_story is None:
-#         raise HTTPException(status_code=404, detail="Story does not exist")
-   
-#     # prevent changing anything else
-#     story.sprint_id = None
-#     story.projectId = None
-#     story.name = None
-#     story.storyDescription = None
-
-#     return crud.update_story_isDone(db=db, story=story, story_id=id)
 
 # update only timeEstiamte of story
 @app.put("/story/{id}/timeEstimate", response_model=schemas.Story, tags=["Stories"])
@@ -791,7 +829,6 @@ async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Sess
         db_story.timeEstimateOriginal = story_time.timeEstimate
 
     return crud.update_story_time_estimate(db=db, story=db_story, story_id=id)
-
 
 #delete za story
 @app.delete("/story/{id}", response_model=schemas.Story, tags=["Stories"])
@@ -940,17 +977,15 @@ async def accept_story(id: int, db: Session = Depends(get_db), Authorize: AuthJW
         raise HTTPException(status_code=400, detail="Can't reject story that is part of a done sprint.")
     
     if db_sprint.startDate.date() > datetime.date.today():
-        raise HTTPException(status_code=400, detail="Can't reject story that is part of a sprint that is not active.")
+        raise HTTPException(status_code=400, detail="Can't reject story that is part of a sprint that is not yet active.")
+    
+    #check if story isDone
+    if not db_story.isDone:
+        raise HTTPException(status_code=400, detail="Can't accept story that has unfinished tasks.")
     
     #check if story is confiremd
     if db_story.isConfirmed:
         raise HTTPException(status_code=400, detail="Can't accpet story that has already been confirmed.")
-    
-    #check if all tasks are done 
-    db_tasks = crud.get_all_story_tasks(db=db, storyId=db_story.id)
-    for task in db_tasks:
-        if not task.isDone:
-            raise HTTPException(status_code=400, detail="Can't accept story that has unfinished tasks.")
     
     #accept story
     return crud.accept_story_in_sprint(db=db, story_id=id)
