@@ -1087,8 +1087,9 @@ async def create_task(storyId: int, task: schemas.TaskInput, db: Session = Depen
     if db_user_project_role.roleId == 1:
         raise HTTPException(status_code=400, detail="Product owner cannot perform this action.")
 
-    if db_story.isDone:
-        raise HTTPException(status_code=400, detail="Cannot add new task under story that has already been marked as done.")
+    ## popravek is zagovora 25.4 --> na isDOne lahko dodajamo taske za popravke časa
+    if db_story.isConfirmed:
+        raise HTTPException(status_code=400, detail="Cannot add new task under story that has already been confirmed.")
 
     db_sprint = crud.get_sprint_by_id(db=db, sprintId=db_story.sprint_id)
     if not db_sprint:
