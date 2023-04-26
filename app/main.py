@@ -590,6 +590,14 @@ async def create_story(story: schemas.StoryCreate, tests: List[schemas.Acceptenc
     if story.timeEstimate > 0 and story.timeEstimate is not None: 
         story.timeEstimateOriginal = story.timeEstimate
     
+     # check that time estimate is not negative or None
+    if story.timeEstimate < 0:
+        raise HTTPException(status_code=400, detail="Time estimate cannot be negative.")
+    
+    #check that time estimate is not greater than 50
+    if story.timeEstimate > 50:
+        raise HTTPException(status_code=400, detail="Time estimate must be less than 50.")
+    
     # create the story
     new_story = crud.create_story(db=db, story=story)
 
@@ -695,6 +703,15 @@ async def update_story(id: int, story: schemas.Story, tests: List[schemas.Accept
                 test = crud.update_test(db=db, test=test, test_id=test.id)
                 break
     
+   
+    # check that time estimate is not negative or zero or None
+    if story.timeEstimate is None or story.timeEstimate < 0:
+        raise HTTPException(status_code=400, detail="Time estimate must be greater than zero and not None.")
+    
+    #check that time estimate is note greater than 50
+    if story.timeEstimate > 50:
+        raise HTTPException(status_code=400, detail="Time estimate must be less than 50.")
+
     # update the time estimate
     db_story.timeEstimate = story.timeEstimate
 
@@ -814,10 +831,17 @@ async def update_story_timeEstimate(id: int, story_time: schemas.Story, db: Sess
     if db_user_project_role.roleId != 2:
         raise HTTPException(status_code=400, detail="Currently logged user must be scrum master at this project, in order to perform this action.")
 
-    
     # prevent changing the time estiamte if story is already part of a sprint
     if db_story.sprint_id is not None:
         raise HTTPException(status_code=400, detail="Story that is already part of a sprint cannot be given a new time estimate.")
+    
+     # check that time estimate is not negative or zero or None
+    if story_time.timeEstimate is None or story_time.timeEstimate < 0:
+        raise HTTPException(status_code=400, detail="Time estimate must be greater than zero and not None.")
+    
+    #check that time estimate is note greater than 50
+    if story_time.timeEstimate > 50:
+        raise HTTPException(status_code=400, detail="Time estimate must be less than 50.")
     
     # update the time estimate
     db_story.timeEstimate = story_time.timeEstimate
